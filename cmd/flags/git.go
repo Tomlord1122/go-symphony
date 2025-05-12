@@ -9,26 +9,25 @@ import (
 type Git string
 
 const (
-	Commit Git = "commit"
-	Skip   Git = "skip"
+	Commit = "commit"
+	Skip   = "skip"
 )
 
 var AllowedGitsOptions = []string{string(Commit), string(Skip)}
 
-func (g Git) String() string {
-	return string(g)
+func (f Git) String() string {
+	return string(f)
 }
 
-func (g *Git) Type() string {
+func (f *Git) Type() string {
 	return "Git"
 }
 
-func (g *Git) Set(value string) error {
-	if !slices.Contains(AllowedGitsOptions, value) {
-		return fmt.Errorf("Git option to use. Allowed values: %s", strings.Join(AllowedGitsOptions, ", "))
+func (f *Git) Set(value string) error {
+	if slices.Contains(AllowedGitsOptions, value) {
+		*f = Git(value)
+		return nil
 	}
 
-	// Explicit type assertion to convert string to Git
-	*g = Git(value)
-	return nil
+	return fmt.Errorf("Git to use. Allowed values: %s", strings.Join(AllowedGitsOptions, ", "))
 }

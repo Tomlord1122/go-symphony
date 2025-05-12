@@ -8,27 +8,33 @@ import (
 
 type Database string
 
-// The current databases supported by Go Symphony
+// These are all the current databases supported. If you want to add one, you
+// can simply copy and paste a line here. Do not forget to also add it into the
+// AllowedDBDrivers slice too!
 const (
-	PostgreSQL Database = "postgresql"
-	None       Database = "none"
+	Postgres Database = "postgres"
+	Redis    Database = "redis"
+	None     Database = "none"
 )
 
-var AllowedDBDrivers = []string{string(PostgreSQL), string(None)}
+var AllowedDBDrivers = []string{string(Postgres), string(Redis), string(None)}
 
-func (d Database) String() string {
-	return string(d)
+func (f Database) String() string {
+	return string(f)
 }
 
-func (d *Database) Type() string {
+func (f *Database) Type() string {
 	return "Database"
 }
 
-func (d *Database) Set(value string) error {
-	if !slices.Contains(AllowedDBDrivers, value) {
-		return fmt.Errorf("Database driver to use. Allowed values: %s", strings.Join(AllowedDBDrivers, ", "))
+func (f *Database) Set(value string) error {
+	// Contains isn't available in 1.20 yet
+	// if AllowedDBDrivers.Contains(value) {
+
+	if slices.Contains(AllowedDBDrivers, value) {
+		// Explicit type assertion to convert string to Database
+		*f = Database(value)
+		return nil
 	}
-	// Explicit type assertion to convert string to Database
-	*d = Database(value)
-	return nil
+	return fmt.Errorf("Database to use. Allowed values: %s", strings.Join(AllowedDBDrivers, ", "))
 }

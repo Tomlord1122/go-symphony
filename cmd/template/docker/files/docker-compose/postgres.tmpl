@@ -1,0 +1,67 @@
+services:
+{{- if .AdvancedOptions.docker }}
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    restart: unless-stopped
+    ports:
+      - ${PORT}:${PORT}
+    environment:
+      APP_ENV: ${APP_ENV}
+      PORT: ${PORT}
+      SYMPHONY_DB_HOST: ${SYMPHONY_DB_HOST}
+      SYMPHONY_DB_PORT: ${SYMPHONY_DB_PORT}
+      SYMPHONY_DB_DATABASE: ${SYMPHONY_DB_DATABASE}
+      SYMPHONY_DB_USERNAME: ${SYMPHONY_DB_USERNAME}
+      SYMPHONY_DB_PASSWORD: ${SYMPHONY_DB_PASSWORD}
+      SYMPHONY_DB_SCHEMA: ${SYMPHONY_DB_SCHEMA}
+    depends_on:
+      psql_bp:
+        condition: service_healthy
+    networks:
+      - symphony
+{{- end }}
+{{- if and .AdvancedOptions.react .AdvancedOptions.docker }}
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - 5173:5173
+    networks:
+      - symphony
+{{- end }}
+  psql_bp:
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${SYMPHONY_DB_DATABASE}
+      POSTGRES_USER: ${SYMPHONY_DB_USERNAME}
+      POSTGRES_PASSWORD: ${SYMPHONY_DB_PASSWORD}
+    ports:
+      - "${SYMPHONY_DB_PORT}:5432"
+    volumes:
+      - psql_volume_bp:/var/lib/postgresql/data
+    {{- if .AdvancedOptions.docker }}
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${SYMPHONY_DB_USERNAME} -d ${SYMPHONY_DB_DATABASE}'"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - symphony
+    {{- end }}
+
+volumes:
+  psql_volume_bp:
+{{- if .AdvancedOptions.docker }}
+networks:
+  symphony:
+{{- end }}

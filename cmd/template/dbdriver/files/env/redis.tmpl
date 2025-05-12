@@ -1,0 +1,8 @@
+{{- if .AdvancedOptions.docker }}
+SYMPHONY_DB_ADDRESS=redis_bp
+{{- else }}
+SYMPHONY_DB_ADDRESS=localhost
+{{- end }}
+SYMPHONY_DB_PORT=6379
+SYMPHONY_DB_PASSWORD=
+SYMPHONY_DB_DATABASE=0

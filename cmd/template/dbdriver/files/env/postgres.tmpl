@@ -1,0 +1,10 @@
+{{- if .AdvancedOptions.docker }}
+SYMPHONY_DB_HOST=psql_bp
+{{- else }}
+SYMPHONY_DB_HOST=localhost
+{{- end }}
+SYMPHONY_DB_PORT=5432
+SYMPHONY_DB_DATABASE=symphony
+SYMPHONY_DB_USERNAME=melkey
+SYMPHONY_DB_PASSWORD=password1234
+SYMPHONY_DB_SCHEMA=public

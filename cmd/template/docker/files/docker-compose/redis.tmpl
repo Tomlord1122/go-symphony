@@ -1,0 +1,55 @@
+services:
+{{- if .AdvancedOptions.docker }}
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    restart: unless-stopped
+    ports:
+      - ${PORT}:${PORT}
+    environment:
+      APP_ENV: ${APP_ENV}
+      PORT: ${PORT}
+      SYMPHONY_DB_PORT: ${SYMPHONY_DB_PORT}
+      SYMPHONY_DB_ADDRESS: ${SYMPHONY_DB_ADDRESS}
+      SYMPHONY_DB_PASSWORD: ${SYMPHONY_DB_PASSWORD}
+      SYMPHONY_DB_DATABASE: ${SYMPHONY_DB_DATABASE}
+    depends_on:
+      redis_bp:
+        condition: service_healthy
+    networks:
+      - symphony
+{{- end }}
+{{- if and .AdvancedOptions.react .AdvancedOptions.docker }}
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - 5173:5173
+    networks:
+      - symphony
+{{- end }}
+  redis_bp:
+    image: redis:7.2.4
+    restart: unless-stopped
+    ports:
+      - "${SYMPHONY_DB_PORT}:6379"
+    {{- if .AdvancedOptions.docker }}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - symphony
+
+networks:
+  symphony:
+{{- end }}
