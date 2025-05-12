@@ -3,9 +3,7 @@ Inspired by [go-blueprint](https://github.com/Melkeydev/go-blueprint), I want to
 
 I am still learning Web Development, especially the deployment part. This project will gradually add the configurations I think are useful.
 
-
 ## Next up
-
 
 1. Support for GORM.
 2. Integration with Svelte Frontend Framework.
