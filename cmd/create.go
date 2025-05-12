@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +20,15 @@ const logo = `
      /____/         /_/                      /____/                
 
 `
+
+// These are the styles for the logo, tip message, and ending message.
+// Using lipgloss to style the text.
+// TODO: Modify to go-recipe style
+var (
+	logoStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#01FAC6")).Bold(true)
+	tipMsgStyle    = lipgloss.NewStyle().PaddingLeft(1).Foreground(lipgloss.Color("190")).Italic(true)
+	endingMsgStyle = lipgloss.NewStyle().PaddingLeft(1).Foreground(lipgloss.Color("170")).Bold(true)
+)
 
 // createCmd represents the create command
 var createCmd = &cobra.Command{
