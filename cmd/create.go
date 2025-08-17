@@ -352,36 +352,37 @@ var createCmd = &cobra.Command{
 
 		fmt.Println(headerStyle.Render("\n🎉 Project created successfully!\n"))
 		fmt.Println(successStyle.Render("Next steps:"))
-		fmt.Println(secondaryStyle.Render(fmt.Sprintf("• cd %s", utils.GetRootDir(project.ProjectName))))
+		fmt.Printf(secondaryStyle.Render("• %-20s # Change to project directory\n"), fmt.Sprintf("cd %s", utils.GetRootDir(project.ProjectName)))
 
 		if project.DBDriver == flags.Supabase {
 			if flagSupabaseMode == flags.LocalDB {
-				fmt.Println(secondaryStyle.Render("• supabase status     # Check Supabase local instance"))
+				fmt.Printf(secondaryStyle.Render("• %-20s # Check Supabase local instance\n"), "supabase status")
 			} else {
-				fmt.Println(secondaryStyle.Render("• supabase link       # Link to your Supabase project"))
-				fmt.Println(secondaryStyle.Render("• supabase start      # Start local development"))
+				fmt.Printf(secondaryStyle.Render("• %-20s # Link to your Supabase project\n"), "supabase link")
+				fmt.Printf(secondaryStyle.Render("• %-20s # Start local development\n"), "supabase start")
 			}
 			if project.AdvancedOptions[string(flags.Sqlc)] {
-				fmt.Println(secondaryStyle.Render("• sqlc generate       # Generate type-safe Go code from SQL"))
+				fmt.Printf(secondaryStyle.Render("• %-20s # Generate type-safe Go code from SQL\n"), "sqlc generate")
 			}
 		} else {
 			if project.AdvancedOptions[string(flags.Sqlc)] {
-				fmt.Println(secondaryStyle.Render("• make sqlc-generate  # Generate type-safe Go code from SQL"))
+				fmt.Printf(secondaryStyle.Render("• %-20s # Generate type-safe Go code from SQL\n"), "make sqlc-generate")
 			}
 			if project.DBDriver != "none" {
-				fmt.Println(secondaryStyle.Render("• make docker-run     # Start PostgreSQL database"))
+				fmt.Printf(secondaryStyle.Render("• %-20s # Start PostgreSQL database\n"), "make docker-run")
 			}
 		}
-		fmt.Println(secondaryStyle.Render("• make run            # Start the server"))
+		fmt.Printf(secondaryStyle.Render("• %-20s # Start the server\n"), "make run")
 
-		if frontendFramework == flags.SvelteKitFrontend {
+		switch frontendFramework {
+		case flags.SvelteKitFrontend:
 			frontendName := project.ProjectName + "-frontend"
-			fmt.Println(secondaryStyle.Render(fmt.Sprintf("• cd %s         # Switch to frontend directory", frontendName)))
-			fmt.Println(secondaryStyle.Render("• pnpm dev            # Start SvelteKit development server"))
-		} else if frontendFramework == flags.NextJSFrontend {
+			fmt.Printf(secondaryStyle.Render("• %-20s # Switch to frontend directory\n"), fmt.Sprintf("cd %s", frontendName))
+			fmt.Printf(secondaryStyle.Render("• %-20s # Start SvelteKit development server\n"), "pnpm dev")
+		case flags.NextJSFrontend:
 			frontendName := project.ProjectName + "-frontend"
-			fmt.Println(secondaryStyle.Render(fmt.Sprintf("• cd %s         # Switch to frontend directory", frontendName)))
-			fmt.Println(secondaryStyle.Render("• pnpm dev            # Start Next.js development server"))
+			fmt.Printf(secondaryStyle.Render("• %-20s # Switch to frontend directory\n"), fmt.Sprintf("cd %s", frontendName))
+			fmt.Printf(secondaryStyle.Render("• %-20s # Start Next.js development server\n"), "pnpm dev")
 		}
 		fmt.Println(secondaryStyle.Render("\n"))
 	},
