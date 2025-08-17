@@ -3,7 +3,10 @@
 ![go-symphony](./assets/go-symphony.png)
 
 
-Inspired by [go-blueprint](https://github.com/Melkeydev/go-blueprint), I aim to develop a modern CLI tool that generates Go web projects. go-symphony produces Go applications utilizing the Gin framework, PostgreSQL database, and SQLC for type-safe queries. My motivation stems from exclusively employing Gin as an API server and PostgreSQL as my database, eliminating the need for alternative options. Having recently adopted Supabase extensively, I intend to integrate its capabilities into this project. Finally, as I use SvelteKit or Next.js to build the front-end, so I incorporate it into go-symphony.
+Inspired by [go-blueprint](https://github.com/Melkeydev/go-blueprint), I aim to develop a modern CLI tool that generates Go web projects. go-symphony produces Go applications utilizing the Gin framework, PostgreSQL database, and SQLC for type-safe queries. My motivation stems from exclusively employing Gin as an API server and PostgreSQL as my database, eliminating the need for alternative options. Having recently adopted Supabase extensively, I intend to integrate its capabilities into this project. Finally, as I use SvelteKit or Next.js to build the front-end, so I incorporate it into go-symphony. 
+## 📺 Demo
+
+Check out a video walkthrough of go-symphony in action: [YouTube Demo](https://www.youtube.com/watch?v=djzhFAd4rjg)
 ## ✨ Features
 
 - **🚀 Modern Go Architecture**: Clean project structure with best practices built-in
