@@ -1,0 +1,43 @@
+-- Posts queries for {{.ProjectName}}
+
+-- name: CreatePost :one
+INSERT INTO posts (title, content, author_id, published)
+VALUES ($1, $2, $3, $4)
+RETURNING *;
+
+-- name: GetPost :one
+SELECT p.*, u.username as author_username
+FROM posts p
+JOIN users u ON p.author_id = u.id
+WHERE p.id = $1 LIMIT 1;
+
+-- name: ListPosts :many
+SELECT p.*, u.username as author_username
+FROM posts p
+JOIN users u ON p.author_id = u.id
+ORDER BY p.created_at DESC
+LIMIT $1 OFFSET $2;
+
+-- name: ListPostsByAuthor :many
+SELECT * FROM posts
+WHERE author_id = $1
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
+
+-- name: ListPublishedPosts :many
+SELECT p.*, u.username as author_username
+FROM posts p
+JOIN users u ON p.author_id = u.id
+WHERE p.published = true
+ORDER BY p.created_at DESC
+LIMIT $1 OFFSET $2;
+
+-- name: UpdatePost :one
+UPDATE posts
+SET title = $2, content = $3, published = $4, updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: DeletePost :exec
+DELETE FROM posts
+WHERE id = $1;

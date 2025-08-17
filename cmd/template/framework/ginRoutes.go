@@ -1,0 +1,40 @@
+package framework
+
+import (
+	_ "embed"
+
+	"github.com/Tomlord1122/go-symphony/cmd/template/advanced"
+)
+
+//go:embed files/routes/gin.go.tmpl
+var ginRoutesTemplate []byte
+
+//go:embed files/server/gin.go.tmpl
+var ginServerTemplate []byte
+
+//go:embed files/tests/gin-test.go.tmpl
+var ginTestHandlerTemplate []byte
+
+// GinTemplates contains the methods used for building
+// an app that uses [github.com/gin-gonic/gin]
+type GinTemplates struct{}
+
+func (g GinTemplates) Main() []byte {
+	return mainTemplate
+}
+
+func (g GinTemplates) Server() []byte {
+	return ginServerTemplate
+}
+
+func (g GinTemplates) Routes() []byte {
+	return ginRoutesTemplate
+}
+
+func (g GinTemplates) TestHandler() []byte {
+	return ginTestHandlerTemplate
+}
+
+func (g GinTemplates) WebsocketImports() []byte {
+	return advanced.StdLibWebsocketTemplImportsTemplate()
+}

@@ -1,0 +1,5 @@
+go-symphony
+# .cursor is a local editor state directory, do not track
+.cursor
+# Ignore main binary in root directory only
+/main

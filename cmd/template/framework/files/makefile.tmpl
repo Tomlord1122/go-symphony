@@ -1,0 +1,136 @@
+# Simple Makefile for a Go project
+
+# Build the application
+all: build test
+
+build:{{- if .AdvancedOptions.sqlc }} sqlc-generate{{- end }}
+	@echo "Building..."
+	{{ if .OSCheck.UnixBased }}@go build -o main cmd/api/main.go{{- else }}@go build -o main.exe cmd/api/main.go{{- end }}
+
+# Run the application
+run:
+	@go run cmd/api/main.go
+
+{{- if .AdvancedOptions.sqlc }}
+{{- if .OSCheck.UnixBased }}
+# Install SQLC
+sqlc-install:
+	@if ! command -v sqlc > /dev/null; then \
+		read -p "SQLC is not installed. Do you want to install it? [Y/n] " choice; \
+		if [ "$$choice" != "n" ] && [ "$$choice" != "N" ]; then \
+			go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest; \
+			if [ ! -x "$$(command -v sqlc)" ]; then \
+				echo "SQLC installation failed. Exiting..."; \
+				exit 1; \
+			fi; \
+		else \
+			echo "You chose not to install SQLC. Exiting..."; \
+			exit 1; \
+		fi; \
+	fi
+{{- else }}
+# Install SQLC
+sqlc-install:
+	@powershell -ExecutionPolicy Bypass -Command "if (Get-Command sqlc -ErrorAction SilentlyContinue) { \
+		; \
+	} else { \
+		Write-Output 'Installing SQLC...'; \
+		go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest; \
+		if (-not (Get-Command sqlc -ErrorAction SilentlyContinue)) { \
+			Write-Output 'SQLC installation failed. Exiting...'; \
+			exit 1; \
+		} else { \
+			Write-Output 'SQLC installed successfully.'; \
+		} \
+	}"
+{{- end }}
+
+# Generate SQLC code
+sqlc-generate: sqlc-install
+	@echo "Generating SQLC code..."
+	@sqlc generate
+
+# Verify SQLC queries
+sqlc-verify: sqlc-install
+	@echo "Verifying SQLC queries..."
+	@sqlc verify
+{{- end }}
+
+{{- if or .AdvancedOptions.docker (ne .DBDriver "none") }}
+{{- if .OSCheck.UnixBased }}
+# Create DB container
+docker-run:
+	@if docker compose up --build 2>/dev/null; then \
+		: ; \
+	else \
+		echo "Falling back to Docker Compose V1"; \
+		docker-compose up --build; \
+	fi
+
+# Shutdown DB container
+docker-down:
+	@if docker compose down 2>/dev/null; then \
+		: ; \
+	else \
+		echo "Falling back to Docker Compose V1"; \
+		docker-compose down; \
+	fi
+{{- else }}
+# Create DB container
+docker-run:
+	@docker compose up --build
+
+# Shutdown DB container
+docker-down:
+	@docker compose down
+{{- end }}
+{{- end }}
+
+# Test the application
+test:
+	@echo "Testing..."
+	@go test ./... -v
+
+{{- if ne .DBDriver "none" }}
+# Integrations Tests for the application
+itest:
+	@echo "Running integration tests..."
+	@go test ./internal/database -v
+{{- end }}
+
+# Clean the binary
+clean:
+	@echo "Cleaning..."
+	@rm -f main
+
+# Live Reload
+{{- if .OSCheck.UnixBased }}
+watch:
+	@if command -v air > /dev/null; then \
+            air; \
+            echo "Watching...";\
+        else \
+            read -p "Go's 'air' is not installed on your machine. Do you want to install it? [Y/n] " choice; \
+            if [ "$$choice" != "n" ] && [ "$$choice" != "N" ]; then \
+                go install github.com/air-verse/air@latest; \
+                air; \
+                echo "Watching...";\
+            else \
+                echo "You chose not to install air. Exiting..."; \
+                exit 1; \
+            fi; \
+        fi
+{{- else }}
+watch:
+	@powershell -ExecutionPolicy Bypass -Command "if (Get-Command air -ErrorAction SilentlyContinue) { \
+		air; \
+		Write-Output 'Watching...'; \
+	} else { \
+		Write-Output 'Installing air...'; \
+		go install github.com/air-verse/air@latest; \
+		air; \
+		Write-Output 'Watching...'; \
+	}"
+{{- end }}
+
+.PHONY: all build run test clean watch{{- if ne .DBDriver "none" }} docker-run docker-down itest{{- end }}{{- if .AdvancedOptions.sqlc }} sqlc-install sqlc-generate sqlc-verify{{- end }}
