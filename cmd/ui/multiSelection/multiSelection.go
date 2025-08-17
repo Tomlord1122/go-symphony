@@ -85,11 +85,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selected[m.cursor] = struct{}{}
 			}
 		case "enter":
-			// Confirm current selections (can be zero, one, or multiple)
-			for selectedKey := range m.selected {
-				m.choices.Update(m.options[selectedKey].Flag, true)
+			// Only confirm if at least one item is selected
+			if len(m.selected) > 0 {
+				for selectedKey := range m.selected {
+					m.choices.Update(m.options[selectedKey].Flag, true)
+				}
+				return m, tea.Quit
 			}
-			return m, tea.Quit
+			// Otherwise, do nothing (stay in selection)
+			return m, nil
 		}
 	}
 	return m, nil
