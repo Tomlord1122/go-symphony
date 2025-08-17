@@ -143,6 +143,10 @@ go-symphony create [flags]
 go-symphony version
 ```
 
+### workflow
+
+![workflow](./assets/go-sym-arc.png)
+
 ## 🤝 Contributing
 
 We welcome contributions! Please see our contributing guidelines:
