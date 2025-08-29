@@ -105,6 +105,7 @@ func (sm *SvelteKitManager) CreateInteractive() error {
 	fmt.Printf("Creating SvelteKit project: %s\n", sm.FrontendName)
 	fmt.Println("This will run npx sv create with interactive prompts...")
 	fmt.Println("You can press Ctrl+C to cancel at any time.")
+	fmt.Println("--------------------------------")
 
 	// Simple command for interactive mode
 	cmd := exec.Command("npx", "sv", "create", frontendPath)

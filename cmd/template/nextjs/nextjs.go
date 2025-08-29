@@ -131,6 +131,7 @@ func (nm *NextJSManager) CreateInteractive() error {
 	fmt.Printf("Creating Next.js project: %s\n", nm.FrontendName)
 	fmt.Println("This will run npx create-next-app@latest with interactive prompts...")
 	fmt.Println("You can press Ctrl+C to cancel at any time.")
+	fmt.Println("--------------------------------")
 
 	// Simple command for interactive mode
 	cmd := exec.Command("npx", "create-next-app@latest", frontendPath)
