@@ -168,9 +168,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Inspired and referenced by [go-blueprint](https://github.com/Melkeydev/go-blueprint)
 - Built with [Cobra CLI](https://github.com/spf13/cobra) and [Bubble Tea](https://github.com/charmbracelet/bubbletea)
 - Claude CLI-inspired color scheme and user experience
-
-## 📞 Support
-
-- 🐛 [Report Issues](https://github.com/Tomlord1122/go-symphony/issues)
-- 💬 [Discussions](https://github.com/Tomlord1122/go-symphony/discussions)
-- 📧 Contact: aa12359346@gmail.com
