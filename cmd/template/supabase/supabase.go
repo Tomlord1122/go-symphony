@@ -38,14 +38,21 @@ func NewSupabaseManager(projectPath string, mode flags.SupabaseMode) *SupabaseMa
 func (sm *SupabaseManager) Init() error {
 	cmd := exec.Command("supabase", "init")
 	cmd.Dir = sm.ProjectPath
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
 	// Create a pipe to handle stdin for interactive prompts
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return fmt.Errorf("failed to create stdin pipe: %w", err)
 	}
+	defer stdin.Close()
+
+	// Capture stdout to monitor for prompts
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+
+	cmd.Stderr = os.Stderr
 
 	fmt.Println("Initializing Supabase project...")
 
@@ -54,14 +61,27 @@ func (sm *SupabaseManager) Init() error {
 		return fmt.Errorf("failed to start Supabase init: %w", err)
 	}
 
-	// Handle interactive prompts by sending 'N' (No) to both questions
-	// This avoids generating IDE-specific settings that may not be needed
+	// Handle interactive prompts by monitoring output and responding appropriately
 	go func() {
-		defer stdin.Close()
-		// Send 'N' for "Generate VS Code settings for Deno? [y/N]"
-		io.WriteString(stdin, "N\n")
-		// Send 'N' for "Generate IntelliJ Settings for Deno? [y/N]"
-		io.WriteString(stdin, "N\n")
+		buffer := make([]byte, 1024)
+		for {
+			n, err := stdout.Read(buffer)
+			if err != nil {
+				break
+			}
+
+			output := string(buffer[:n])
+			fmt.Print(output) // Still show output to user
+
+			// Check for VS Code Deno prompt
+			if strings.Contains(output, "Generate VS Code settings for Deno") {
+				io.WriteString(stdin, "N\n")
+			}
+			// Check for IntelliJ Deno prompt
+			if strings.Contains(output, "Generate IntelliJ Settings for Deno") {
+				io.WriteString(stdin, "N\n")
+			}
+		}
 	}()
 
 	// Wait for the command to complete
