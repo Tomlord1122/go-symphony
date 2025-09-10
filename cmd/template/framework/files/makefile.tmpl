@@ -146,4 +146,14 @@ db-up:
 	@echo "Running database migrations..."
 	supabase migration up
 
-.PHONY: all build run test clean watch{{- if ne .DBDriver "none" }} docker-run docker-down itest{{- end }}{{- if .AdvancedOptions.sqlc }} sqlc-install sqlc-generate sqlc-verify{{- end }} db-start db-stop db-up
+# Database migration commands
+db-schema:
+	@if [ -z "$(name)" ]; then \
+		echo "Error: Migration name is required. Usage: make db-schema name=your_migration_name"; \
+		exit 1; \
+	fi
+	@echo "Creating new migration: $(name)"
+	@migrate create -ext sql -dir ./supabase/migrations $(name)
+
+
+.PHONY: all build run test clean watch{{- if ne .DBDriver "none" }} docker-run docker-down itest{{- end }}{{- if .AdvancedOptions.sqlc }} sqlc-install sqlc-generate sqlc-verify{{- end }} db-start db-stop db-up db-schema
