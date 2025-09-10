@@ -133,4 +133,17 @@ watch:
 	}"
 {{- end }}
 
-.PHONY: all build run test clean watch{{- if ne .DBDriver "none" }} docker-run docker-down itest{{- end }}{{- if .AdvancedOptions.sqlc }} sqlc-install sqlc-generate sqlc-verify{{- end }}
+# Database commands
+db-start:
+	@echo "Starting Supabase local development..."
+	supabase start
+
+db-stop:
+	@echo "Stopping Supabase local development..."
+	supabase stop
+
+db-up:
+	@echo "Running database migrations..."
+	supabase migration up
+
+.PHONY: all build run test clean watch{{- if ne .DBDriver "none" }} docker-run docker-down itest{{- end }}{{- if .AdvancedOptions.sqlc }} sqlc-install sqlc-generate sqlc-verify{{- end }} db-start db-stop db-up
