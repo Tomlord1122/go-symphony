@@ -16,7 +16,7 @@ services:
       SYMPHONY_DB_DATABASE: ${SYMPHONY_DB_DATABASE}
       SYMPHONY_DB_USERNAME: ${SYMPHONY_DB_USERNAME}
       SYMPHONY_DB_PASSWORD: ${SYMPHONY_DB_PASSWORD}
-      SYMPHONY_DB_SCHEMA: ${SYMPHONY_DB_SCHEMA}
+      SYMPHONY_DB_SSLMODE: ${SYMPHONY_DB_SSLMODE}
     depends_on:
       psql_symphony:
         condition: service_healthy
