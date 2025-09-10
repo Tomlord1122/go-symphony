@@ -2,7 +2,7 @@ version: "2"
 sql:
   - engine: "postgresql"
     queries: "./supabase/queries"
-    schema: "{{.MigrationPath}}"
+    schema: "./supabase/migrations"
     gen:
       go:
         package: "db"
