@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -10,7 +11,6 @@ import (
 	{{- if ne .DBDriver "none" }}
 	"{{.ProjectName}}/internal/database"
 	{{- end }}
-	_ "github.com/joho/godotenv/autoload"
 )
 
 type Server struct {
@@ -22,6 +22,14 @@ type Server struct {
 
 func NewServer() *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv == "" {
+		appEnv = "local"
+	}
+	
+	// Log the current environment
+	log.Printf("Starting server in %s environment", appEnv)
+	
 	NewServer := &Server{
 		port: port,
 		{{- if ne .DBDriver "none" }}
@@ -29,13 +37,25 @@ func NewServer() *http.Server {
 		{{- end }}
 	}
 
+	// Configure timeouts based on environment
+	var readTimeout, writeTimeout, idleTimeout time.Duration
+	if appEnv == "production" {
+		readTimeout = 30 * time.Second
+		writeTimeout = 60 * time.Second
+		idleTimeout = 5 * time.Minute
+	} else {
+		readTimeout = 10 * time.Second
+		writeTimeout = 30 * time.Second
+		idleTimeout = time.Minute
+	}
+
 	// Declare Server config
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", NewServer.port),
 		Handler:      NewServer.RegisterRoutes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  idleTimeout,
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
 	}
 
 	return server

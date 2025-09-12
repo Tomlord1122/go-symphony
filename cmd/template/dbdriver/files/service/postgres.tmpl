@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/joho/godotenv/autoload"
 )
 
 // Service represents a service that interacts with a database.
@@ -33,7 +32,7 @@ var (
 	username = os.Getenv("SYMPHONY_DB_USERNAME")
 	port     = os.Getenv("SYMPHONY_DB_PORT")
 	host     = os.Getenv("SYMPHONY_DB_HOST")
-        schema   = os.Getenv("SYMPHONY_DB_SCHEMA")
+	schema   = os.Getenv("SYMPHONY_DB_SCHEMA")
 	dbInstance *service
 )
 

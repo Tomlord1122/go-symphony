@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"os"
   {{if .AdvancedOptions.websocket}}
 	"log"
 	"fmt"
@@ -15,10 +16,37 @@ import (
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv == "" {
+		appEnv = "local"
+	}
+
+	// Set Gin mode based on environment
+	if appEnv == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	} else {
+		gin.SetMode(gin.DebugMode)
+	}
+
 	r := gin.Default()
 
+	// Configure CORS based on environment
+	var allowedOrigins []string
+	frontendURL := os.Getenv("FRONT_END_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173" // Default fallback
+	}
+
+	if appEnv == "production" {
+		// In production, use the configured frontend URL
+		allowedOrigins = []string{frontendURL}
+	} else {
+		// In development, allow configured frontend URL plus common development servers
+		allowedOrigins = []string{frontendURL, "http://localhost:3000", "http://localhost:8080"}
+	}
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000"}, // Add your frontend URL
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true, // Enable cookies/auth

@@ -1,6 +1,7 @@
 package supabase
 
 import (
+	"bytes"
 	_ "embed"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"text/template"
 
 	"github.com/Tomlord1122/go-symphony/cmd/flags"
+	tpl "github.com/Tomlord1122/go-symphony/cmd/template"
 )
 
 //go:embed files/supabase_env.tmpl
@@ -133,7 +135,7 @@ func (sm *SupabaseManager) GetMigrationPath() string {
 	return filepath.Join(sm.ProjectPath, "supabase", "migrations")
 }
 
-// GenerateSupabaseEnv creates .env file with Supabase configuration
+// GenerateSupabaseEnv creates .env file with Supabase configuration including global environment variables
 func (sm *SupabaseManager) GenerateSupabaseEnv() error {
 	envPath := filepath.Join(sm.ProjectPath, ".env")
 
@@ -143,7 +145,14 @@ func (sm *SupabaseManager) GenerateSupabaseEnv() error {
 	}
 	defer file.Close()
 
-	_, err = file.Write(SupabaseEnvTemplate)
+	// Combine global environment template with Supabase-specific template
+	envBytes := [][]byte{
+		tpl.GlobalEnvTemplate(),
+		SupabaseEnvTemplate,
+	}
+
+	combinedTemplate := bytes.Join(envBytes, []byte("\n"))
+	_, err = file.Write(combinedTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to write .env file: %w", err)
 	}
