@@ -3,16 +3,15 @@ package server
 import (
 	"net/http"
 	"os"
-  {{if .AdvancedOptions.websocket}}
-	"log"
+
 	"fmt"
+	"log"
 	"time"
-  {{end}}
 
-	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 
-  {{.AdvancedTemplates.TemplateImports}}
+	"github.com/gorilla/websocket"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
@@ -53,14 +52,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}))
 
 	r.GET("/", s.HelloWorldHandler)
-  {{if ne .DBDriver "none"}}
-	r.GET("/health", s.healthHandler)
-  {{end}}
-  {{if .AdvancedOptions.websocket}}
-	r.GET("/websocket", s.websocketHandler)
-  {{end}}
 
-  {{.AdvancedTemplates.TemplateRoutes}}
+	r.GET("/websocket", s.websocketHandler)
 
 	return r
 }
@@ -72,13 +65,6 @@ func (s *Server) HelloWorldHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-{{if ne .DBDriver "none"}}
-func (s *Server) healthHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, s.db.Health())
-}
-{{end}}
-
-{{if .AdvancedOptions.websocket}}
 // websocketUpgrader configures the websocket upgrader
 var websocketUpgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -91,7 +77,7 @@ var websocketUpgrader = websocket.Upgrader{
 func (s *Server) websocketHandler(c *gin.Context) {
 	w := c.Writer
 	r := c.Request
-	
+
 	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -111,5 +97,3 @@ func (s *Server) websocketHandler(c *gin.Context) {
 		time.Sleep(time.Second * 2)
 	}
 }
-{{end}}
-

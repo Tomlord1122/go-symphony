@@ -352,10 +352,6 @@ func (p *Project) CreateMainFile() error {
 		}
 	}
 
-	// if the websocket option is checked, a websocket dependency needs to
-	// be added to the routes depending on the framework choosen.
-	// Only fiber uses a different websocket library, the other frameworks
-	// all work with the same one
 	if p.AdvancedOptions[string(flags.Websocket)] {
 		p.CreateWebsocketImports(projectPath)
 	}
@@ -584,7 +580,7 @@ func (p *Project) CreateFileWithInjection(pathToCreate string, projectPath strin
 }
 
 func (p *Project) CreateWebsocketImports(appDir string) {
-	websocketDependency := []string{"github.com/coder/websocket"}
+	websocketDependency := []string{"github.com/gorilla/websocket"}
 
 	// Install websocket dependency
 	err := utils.GoGetPackage(appDir, websocketDependency)
