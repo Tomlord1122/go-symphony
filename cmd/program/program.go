@@ -19,6 +19,7 @@ import (
 	"github.com/Tomlord1122/go-symphony/cmd/template/docker"
 	"github.com/Tomlord1122/go-symphony/cmd/template/framework"
 	"github.com/Tomlord1122/go-symphony/cmd/template/sqlc"
+	"github.com/Tomlord1122/go-symphony/cmd/template/supabase"
 	"github.com/Tomlord1122/go-symphony/cmd/utils"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -39,6 +40,7 @@ type Project struct {
 	AdvancedTemplates AdvancedTemplates
 	GitOptions        flags.Git
 	OSCheck           map[string]bool
+	SupabaseMode      flags.SupabaseMode
 }
 
 type AdvancedTemplates struct {
@@ -356,7 +358,16 @@ func (p *Project) CreateMainFile() error {
 		p.CreateWebsocketImports(projectPath)
 	}
 
-	// Create SQLC configuration and example files (skip for Supabase as it's handled separately)
+	// Handle Supabase setup if selected
+	if p.DBDriver == flags.Supabase {
+		err = p.createSupabaseSetup(projectPath)
+		if err != nil {
+			log.Printf("Error setting up Supabase: %v", err)
+			return err
+		}
+	}
+
+	// Create SQLC configuration and example files (skip for Supabase as it's handled in createSupabaseSetup)
 	if p.AdvancedOptions[string(flags.Sqlc)] && p.DBDriver != flags.Supabase {
 		err = p.CreateSqlcSetup(projectPath)
 		if err != nil {
@@ -667,5 +678,47 @@ func (p *Project) CreateSqlcSetup(projectPath string) error {
 		return err
 	}
 
+	return nil
+}
+
+// createSupabaseSetup handles Supabase initialization within CreateMainFile
+func (p *Project) createSupabaseSetup(projectPath string) error {
+	// Import supabase package
+	supabaseManager := supabase.NewSupabaseManager(projectPath, p.SupabaseMode)
+
+	fmt.Println("🚀 Setting up Supabase...")
+
+	// Step 1: Initialize Supabase project
+	if err := supabaseManager.Init(); err != nil {
+		return fmt.Errorf("failed to initialize Supabase: %w", err)
+	}
+
+	// Step 2: Create initial migration
+	migrationName := "initial_schema"
+	_, err := supabaseManager.CreateMigration(migrationName)
+	if err != nil {
+		return fmt.Errorf("failed to create initial migration: %w", err)
+	}
+
+	// Step 3: Generate environment file
+	if err := supabaseManager.GenerateSupabaseEnv(); err != nil {
+		return fmt.Errorf("failed to generate environment file: %w", err)
+	}
+
+	// Step 4: Generate SQLC config (if SQLC is enabled)
+	if p.AdvancedOptions[string(flags.Sqlc)] {
+		if err := supabaseManager.GenerateSupabaseSqlcConfig(); err != nil {
+			return fmt.Errorf("failed to generate SQLC config: %w", err)
+		}
+	}
+
+	// Step 5: Start local database (only for local-db mode)
+	if p.SupabaseMode == flags.LocalDB {
+		if err := supabaseManager.Start(); err != nil {
+			return fmt.Errorf("failed to start local Supabase: %w", err)
+		}
+	}
+
+	fmt.Println("✅ Supabase setup completed successfully!")
 	return nil
 }

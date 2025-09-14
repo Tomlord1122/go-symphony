@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/Tomlord1122/go-symphony/cmd/program"
 	"github.com/Tomlord1122/go-symphony/cmd/steps"
 	"github.com/Tomlord1122/go-symphony/cmd/template/nextjs"
-	"github.com/Tomlord1122/go-symphony/cmd/template/supabase"
 	"github.com/Tomlord1122/go-symphony/cmd/template/sveltekit"
 	"github.com/Tomlord1122/go-symphony/cmd/ui/multiSelection"
 	"github.com/Tomlord1122/go-symphony/cmd/ui/singleSelection"
@@ -24,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// ASNI SHADOW
 const logo = `
 ███████╗██╗   ██╗███╗   ███╗██████╗ ██╗  ██╗ ██████╗ ███╗   ██╗██╗   ██╗
 ██╔════╝╚██╗ ██╔╝████╗ ████║██╔══██╗██║  ██║██╔═══██╗████╗  ██║╚██╗ ██╔╝
@@ -51,7 +50,6 @@ func init() {
 	var flagSvelteKitTemplate flags.SvelteKitTemplate
 	var flagSvelteKitTypes flags.SvelteKitTypes
 	var flagSvelteKitPackageManager flags.SvelteKitPackageManager
-	rootCmd.AddCommand(createCmd)
 
 	createCmd.Flags().StringP("name", "n", "", "Name of project to create")
 	createCmd.Flags().VarP(&flagDBDriver, "driver", "d", fmt.Sprintf("Database drivers to use. Allowed values: %s", strings.Join(flags.AllowedDBDrivers, ", ")))
@@ -132,6 +130,7 @@ var createCmd = &cobra.Command{
 			DBDriverMap:     make(map[flags.Database]program.Driver),
 			AdvancedOptions: make(map[string]bool),
 			GitOptions:      flagGit,
+			SupabaseMode:    flagSupabaseMode,
 		}
 
 		steps := steps.InitSteps(flags.Gin, flagDBDriver)
@@ -311,18 +310,6 @@ var createCmd = &cobra.Command{
 			cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
 		}
 
-		// Handle Supabase initialization if selected
-		if project.DBDriver == flags.Supabase {
-			err = handleSupabaseSetup(project, flagSupabaseMode)
-			if err != nil {
-				if releaseErr := spinner.ReleaseTerminal(); releaseErr != nil {
-					log.Printf("Problem releasing terminal: %v", releaseErr)
-				}
-				log.Printf("Problem setting up Supabase: %v", err)
-				cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
-			}
-		}
-
 		// Release spinner before SvelteKit setup to avoid terminal conflicts
 		err = spinner.ReleaseTerminal()
 		if err != nil {
@@ -401,61 +388,6 @@ func doesDirectoryExistAndIsNotEmpty(name string) bool {
 		}
 	}
 	return false
-}
-
-// handleSupabaseSetup manages the Supabase initialization flow
-func handleSupabaseSetup(project *program.Project, mode flags.SupabaseMode) error {
-	// Check if Supabase CLI is installed
-	if err := supabase.CheckSupabaseCLI(); err != nil {
-		return err
-	}
-
-	projectPath := filepath.Join(project.AbsolutePath, utils.GetRootDir(project.ProjectName))
-
-	// Use default mode if not specified
-	if mode == "" {
-		mode = flags.InitOnly
-	}
-
-	// Create Supabase manager
-	manager := supabase.NewSupabaseManager(projectPath, mode)
-
-	fmt.Println(headerStyle.Render("\n🚀 Setting up Supabase...\n"))
-
-	// Step 1: Initialize Supabase project
-	if err := manager.Init(); err != nil {
-		return fmt.Errorf("failed to initialize Supabase: %w", err)
-	}
-
-	// Step 2: Create initial migration
-	migrationName := "initial_schema"
-	_, err := manager.CreateMigration(migrationName)
-	if err != nil {
-		return fmt.Errorf("failed to create initial migration: %w", err)
-	}
-
-	// Step 3: Generate environment file
-	if err := manager.GenerateSupabaseEnv(); err != nil {
-		return fmt.Errorf("failed to generate environment file: %w", err)
-	}
-
-	// Step 4: Generate SQLC config (if SQLC is enabled)
-	if project.AdvancedOptions[string(flags.Sqlc)] {
-		if err := manager.GenerateSupabaseSqlcConfig(); err != nil {
-			return fmt.Errorf("failed to generate SQLC config: %w", err)
-		}
-	}
-
-	// Step 5: Start local database (only for local-db mode)
-	if mode == flags.LocalDB {
-		if err := manager.Start(); err != nil {
-			return fmt.Errorf("failed to start local Supabase: %w", err)
-		}
-	}
-
-	fmt.Println(successStyle.Render("✅ Supabase setup completed successfully!"))
-
-	return nil
 }
 
 // handleSvelteKitSetup manages the SvelteKit frontend creation flow
