@@ -41,6 +41,7 @@ type Project struct {
 	GitOptions        flags.Git
 	OSCheck           map[string]bool
 	SupabaseMode      flags.SupabaseMode
+	SkipInstall       bool
 }
 
 type AdvancedTemplates struct {
@@ -259,8 +260,8 @@ func (p *Project) CreateMainFile() error {
 		}
 	}
 
-	// Create correct docker compose for the selected driver
-	if p.DBDriver != "none" && p.DBDriver != "supabase" {
+	// Create docker compose only when docker advanced feature is enabled.
+	if p.AdvancedOptions[string(flags.Docker)] && p.DBDriver != "none" && p.DBDriver != "supabase" {
 		if p.DBDriver != "sqlite" {
 			p.createDockerMap()
 			p.Docker = p.DBDriver
@@ -462,16 +463,18 @@ func (p *Project) CreateMainFile() error {
 		return err
 	}
 
-	err = utils.GoTidy(projectPath)
-	if err != nil {
-		log.Printf("Could not go tidy in new project %v\n", err)
-		return err
-	}
+	if !p.SkipInstall {
+		err = utils.GoTidy(projectPath)
+		if err != nil {
+			log.Printf("Could not go tidy in new project %v\n", err)
+			return err
+		}
 
-	err = utils.GoFmt(projectPath)
-	if err != nil {
-		log.Printf("Could not gofmt in new project %v\n", err)
-		return err
+		err = utils.GoFmt(projectPath)
+		if err != nil {
+			log.Printf("Could not gofmt in new project %v\n", err)
+			return err
+		}
 	}
 
 	if p.GitOptions != flags.Skip {

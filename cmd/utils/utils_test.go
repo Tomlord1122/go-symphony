@@ -85,15 +85,15 @@ func TestNonInteractiveCommand(t *testing.T) {
 			setupFlags: func(flags *pflag.FlagSet) {
 				flags.String("name", "", "project name")
 				flags.String("driver", "", "database driver")
-				flags.String("feature", "", "advanced features")
+				flags.String("frontend", "", "frontend framework")
 				flags.String("sveltekit-template", "", "sveltekit template")
 				flags.String("sveltekit-types", "", "sveltekit types")
 				flags.Set("name", "test-project")
 				flags.Set("driver", "postgres")
-				flags.Set("feature", "docker,websocket")
+				flags.Set("frontend", "none")
 				// Don't set sveltekit flags values - they should be excluded
 			},
-			expected:    "go-symphony create --name test-project --driver postgres --feature docker --feature websocket",
+			expected:    "go-symphony create --name test-project --driver postgres --frontend none",
 			description: "Should exclude SvelteKit flags when SvelteKit feature is not enabled",
 		},
 		{
@@ -101,16 +101,16 @@ func TestNonInteractiveCommand(t *testing.T) {
 			setupFlags: func(flags *pflag.FlagSet) {
 				flags.String("name", "", "project name")
 				flags.String("driver", "", "database driver")
-				flags.String("feature", "", "advanced features")
+				flags.String("frontend", "", "frontend framework")
 				flags.String("sveltekit-template", "", "sveltekit template")
 				flags.String("sveltekit-types", "", "sveltekit types")
 				flags.Set("name", "test-project")
 				flags.Set("driver", "postgres")
-				flags.Set("feature", "docker,sveltekit")
+				flags.Set("frontend", "sveltekit")
 				flags.Set("sveltekit-template", "skeleton")
 				flags.Set("sveltekit-types", "typescript")
 			},
-			expected:    "go-symphony create --name test-project --driver postgres --feature docker --feature sveltekit --sveltekit-template skeleton --sveltekit-types typescript",
+			expected:    "go-symphony create --name test-project --driver postgres --frontend sveltekit --sveltekit-template skeleton --sveltekit-types typescript",
 			description: "Should include SvelteKit flags when SvelteKit feature is enabled",
 		},
 		{

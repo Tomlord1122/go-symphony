@@ -21,132 +21,271 @@ Check out a video walkthrough of go-symphony in action: [YouTube Demo](https://w
 - **🌐 Frontend Integration**: Optional SvelteKit and Next.js frontend generation
 - **🔌 WebSocket Support**: Real-time communication capabilities
 
-## 🎯 Project Structure
-
-Go Symphony generates projects with this consistent structure:
-
-```
-your-project/
-├── cmd/api/main.go           # Application entry point
-├── internal/
-│   ├── server/               # Gin server and routes
-│   ├── database/             # Database service layer
-│   └── db_sqlc/              # SQLC generated code (optional)
-├── sqlc/                     # Standard PostgreSQL setup
-│   ├── migrations/           # SQL schema files
-│   └── queries/              # SQL query files
-├── supabase/                 # Supabase setup (alternative)
-│   └── migrations/           # Supabase migration files
-├── Makefile                  # Build and development commands
-├── .env                      # Environment configuration
-├── .air.toml                 # Hot reload configuration
-└── docker-compose.yml       # Database containers (non-Supabase)
-```
-
 ## 📦 Installation
 
-### Option 1: Install with Go (Recommended)
+### Install with Go
 
 ```bash
 go install github.com/Tomlord1122/go-symphony@latest
 ```
 
-### Option 2: Install from Releases
+### Install from Releases
 
-Download the latest release from [GitHub Releases](https://github.com/Tomlord1122/go-symphony/releases):
+Download the latest binary from [GitHub Releases](https://github.com/Tomlord1122/go-symphony/releases).
 
-### Option 3: Build from Source
+### Build from Source
 
 ```bash
 git clone https://github.com/Tomlord1122/go-symphony.git
 cd go-symphony
 go build -o go-symphony .
-sudo mv go-symphony /usr/local/bin/
-```
-
-## 🚀 Quick Start
-
-### Create a New Project
-
-```bash
-# Interactive mode (recommended for first use)
-go-symphony create
-```
-
-### Basic Usage
-
-```bash
-
-# Create project with advanced features
-go-symphony create -a
-
-# Create project with name my-api
-go-symphony create -n my-api 
-
-# Create project with name my-api and advanced features
-go-symphony create -n my-api -a
-
-```
-
-### Available Options
-
-- **Database Drivers**: `postgres`, `supabase`, `none`
-- **Advanced Features**: `sqlc`, `docker`, `githubaction`, `websocket`
-- **Frontend Framework**: `sveltekit`, `nextjs`, `none`
-- **Git Options**: `commit`, `stage`, `skip`
-
-## 🛠️ Development Workflow
-
-After creating your project:
-
-```bash
-cd your-project
-
-# Start PostgreSQL database (if using postgres driver)
-make docker-run
-
-# Generate SQLC code (if using SQLC)
-make sqlc-generate
-
-# Start development server with hot reload
-make watch
-
-# Run tests
-make test
-
-# Build for production
-make build
 ```
 
 ## 📋 Prerequisites
 
 ### Required
-- **Go 1.24+**: [Download Go](https://golang.org/dl/)
-- **Git**: For project initialization
+- **Go 1.23+** to build or run the CLI
 
-### Optional (for specific features)
-- **Docker**: For database containers and containerization
-- **Supabase CLI**: For Supabase integration - [Install Supabase CLI](https://supabase.com/docs/guides/cli)
-- **Node.js & pnpm**: For SvelteKit frontend - [Install Node.js](https://nodejs.org/) & [Install pnpm](https://pnpm.io/installation)
-- **SQLC**: Automatically installed via Makefile when needed
+### Optional
+- **Git** for `--git stage` or `--git commit`
+- **Docker** for generated Postgres containers and Docker assets
+- **Supabase CLI** for Supabase bootstrap flows
+- **Node.js / npx** for SvelteKit or Next.js bootstrap flows
+- **pnpm** if you want pnpm-based frontend installs
 
-### Create Command
+## 🚀 How To Use
+
+### Interactive Create Flow
+
+Use this when you want prompts:
+
+```bash
+go-symphony create
+```
+
+Use advanced feature prompts:
+
+```bash
+go-symphony create --advanced
+```
+
+### Non-Interactive Create Flow
+
+Use this when scripting or working with an AI agent:
+
+```bash
+go-symphony create \
+  --name github.com/acme/my-api \
+  --driver postgres \
+  --feature sqlc \
+  --feature docker \
+  --frontend none \
+  --git skip \
+  --no-interactive
+```
+
+### Preview The Plan Without Writing Files
+
+```bash
+go-symphony create \
+  --name github.com/acme/my-api \
+  --driver postgres \
+  --feature sqlc \
+  --frontend none \
+  --git skip \
+  --no-interactive \
+  --dry-run
+```
+
+### Use The Dedicated Plan Command
+
+`plan` is the agent-friendly preview command. It validates the input and prints the scaffold steps without creating files.
+
+```bash
+go-symphony plan \
+  --name github.com/acme/my-api \
+  --driver postgres \
+  --feature sqlc \
+  --feature docker \
+  --frontend sveltekit \
+  --sveltekit-template minimal \
+  --sveltekit-types ts \
+  --sveltekit-package-manager pnpm \
+  --git skip
+```
+
+### Output JSON For Automation
+
+Both `create --dry-run` and `plan` support JSON output.
+
+```bash
+go-symphony plan \
+  --name github.com/acme/my-api \
+  --driver supabase \
+  --supabase-mode init-only \
+  --frontend none \
+  --git skip \
+  --output json
+```
+
+### Skip Install And Formatting Steps
+
+Use `--skip-install` when you only want the scaffolded files and want to run dependency/bootstrap steps later.
+
+```bash
+go-symphony create \
+  --name github.com/acme/my-api \
+  --driver postgres \
+  --feature docker \
+  --frontend none \
+  --git skip \
+  --no-interactive \
+  --skip-install
+```
+
+## 🤖 AI Agent Usage
+
+`go-symphony` now works well in an AI-assisted workflow because it supports:
+
+- `--no-interactive` for deterministic execution
+- `--dry-run` for previewing the scaffold plan
+- `plan` for a dedicated planning step
+- `--output json` for machine-readable output
+- `--skip-install` for file generation without dependency/bootstrap side effects
+
+Recommended AI workflow:
+
+1. Generate a plan first.
+2. Review the JSON or text output.
+3. Run `create` with the same flags.
+4. Optionally run follow-up bootstrap steps yourself.
+
+Example:
+
+```bash
+go-symphony plan \
+  --name github.com/acme/my-api \
+  --driver postgres \
+  --feature sqlc \
+  --feature githubaction \
+  --frontend none \
+  --git skip \
+  --output json
+
+go-symphony create \
+  --name github.com/acme/my-api \
+  --driver postgres \
+  --feature sqlc \
+  --feature githubaction \
+  --frontend none \
+  --git skip \
+  --no-interactive \
+  --skip-install
+```
+
+## ⚙️ Main Options
+
+### Database Drivers
+
+- `postgres`
+- `supabase`
+- `none`
+
+### Advanced Features
+
+- `sqlc`
+- `docker`
+- `githubaction`
+- `websocket`
+
+### Frontend Frameworks
+
+- `sveltekit`
+- `nextjs`
+- `none`
+
+### Git Modes
+
+- `commit`
+- `stage`
+- `skip`
+
+### Supabase Modes
+
+- `init-only`
+- `local-db`
+
+## 🧱 Generated Project Structure
+
+Typical backend output:
+
+```text
+your-project/
+├── cmd/api/main.go
+├── internal/
+│   ├── server/
+│   └── database/
+├── Makefile
+├── README.md
+├── .env
+├── .air.toml
+└── .gitignore
+```
+
+Optional additions depend on selected features:
+
+- `sqlc/` for SQLC migrations and queries
+- `supabase/` for Supabase bootstrap files
+- `.github/workflows/` for GitHub Actions
+- `Dockerfile` and `docker-compose.yml` only when `feature=docker` is enabled
+- `<project>-frontend/` for SvelteKit or Next.js
+
+## 🛠️ Development Workflow
+
+After generating a project:
+
+```bash
+cd your-project
+
+# Start the generated Go server
+make run
+
+# Optional: start the Postgres container
+make docker-run
+
+# Optional: generate SQLC code
+make sqlc-generate
+
+# Optional: run tests
+make test
+
+# Optional: build the project
+make build
+```
+
+If you want generated Docker assets, include `--feature docker` when creating the project.
+
+## 📖 Commands
+
+### Create
 
 ```bash
 go-symphony create [flags]
 ```
 
-**Flags:**
-- `-n, --name string`: Name of project to create
-- `-a, --advanced`: Enable advanced features prompt
+### Plan
 
-### Version Command
+```bash
+go-symphony plan [flags]
+```
+
+### Version
 
 ```bash
 go-symphony version
 ```
 
-### workflow
+## 🗺️ Workflow
 
 ![workflow](./assets/go-sym-arc.png)
 
