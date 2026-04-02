@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -269,9 +268,12 @@ var createCmd = &cobra.Command{
 		}
 
 		if spec.Execution.Output == scaffold.OutputJSON {
-			encoder := json.NewEncoder(os.Stdout)
-			encoder.SetIndent("", "  ")
-			if err := encoder.Encode(map[string]any{"mode": "apply", "spec": spec}); err != nil {
+			result := scaffold.ApplyResult{
+				Mode:      "apply",
+				Spec:      spec,
+				Succeeded: true,
+			}
+			if err := scaffold.WriteApplyResult(os.Stdout, result, spec.Execution.Output); err != nil {
 				cobra.CheckErr(err)
 			}
 		}
