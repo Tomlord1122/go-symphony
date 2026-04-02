@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/Tomlord1122/go-symphony/cmd/ui/spinner"
 	"github.com/Tomlord1122/go-symphony/cmd/ui/textinput"
 	"github.com/Tomlord1122/go-symphony/cmd/utils"
+	"github.com/Tomlord1122/go-symphony/internal/scaffold"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
@@ -54,6 +56,10 @@ func init() {
 	createCmd.Flags().StringP("name", "n", "", "Name of project to create")
 	createCmd.Flags().VarP(&flagDBDriver, "driver", "d", fmt.Sprintf("Database drivers to use. Allowed values: %s", strings.Join(flags.AllowedDBDrivers, ", ")))
 	createCmd.Flags().BoolP("advanced", "a", false, "Get prompts for advanced features")
+	createCmd.Flags().Bool("dry-run", false, "Print the planned scaffold steps without creating files")
+	createCmd.Flags().Bool("no-interactive", false, "Disable interactive prompts and require all needed flags")
+	createCmd.Flags().Bool("skip-install", false, "Skip dependency installation and formatting commands")
+	createCmd.Flags().String("output", string(scaffold.OutputText), "Output format: text or json")
 	createCmd.Flags().Var(&advancedFeatures, "feature", fmt.Sprintf("Advanced feature to use. Allowed values: %s", strings.Join(flags.AllowedAdvancedFeatures, ", ")))
 	createCmd.Flags().VarP(&flagGit, "git", "g", fmt.Sprintf("Git to use. Allowed values: %s", strings.Join(flags.AllowedGitsOptions, ", ")))
 	createCmd.Flags().Var(&flagSupabaseMode, "supabase-mode", fmt.Sprintf("Supabase mode when using Supabase. Allowed values: %s", strings.Join(flags.AllowedSupabaseModes, ", ")))
@@ -67,6 +73,7 @@ func init() {
 	utils.RegisterStaticCompletions(createCmd, "git", flags.AllowedGitsOptions)
 	utils.RegisterStaticCompletions(createCmd, "supabase-mode", flags.AllowedSupabaseModes)
 	utils.RegisterStaticCompletions(createCmd, "frontend", flags.AllowedFrontendFrameworks)
+	utils.RegisterStaticCompletions(createCmd, "output", []string{string(scaffold.OutputText), string(scaffold.OutputJSON)})
 	utils.RegisterStaticCompletions(createCmd, "sveltekit-template", flags.AllowedSvelteKitTemplates)
 	utils.RegisterStaticCompletions(createCmd, "sveltekit-types", flags.AllowedSvelteKitTypes)
 	utils.RegisterStaticCompletions(createCmd, "sveltekit-package-manager", flags.AllowedSvelteKitPackageManagers)
@@ -111,6 +118,47 @@ var createCmd = &cobra.Command{
 		flagSvelteKitTemplate := flags.SvelteKitTemplate(cmd.Flag("sveltekit-template").Value.String())
 		flagSvelteKitTypes := flags.SvelteKitTypes(cmd.Flag("sveltekit-types").Value.String())
 		flagSvelteKitPackageManager := flags.SvelteKitPackageManager(cmd.Flag("sveltekit-package-manager").Value.String())
+		flagDryRun, err := cmd.Flags().GetBool("dry-run")
+		if err != nil {
+			log.Fatal("failed to retrieve dry-run flag")
+		}
+		flagNoInteractive, err := cmd.Flags().GetBool("no-interactive")
+		if err != nil {
+			log.Fatal("failed to retrieve no-interactive flag")
+		}
+		flagSkipInstall, err := cmd.Flags().GetBool("skip-install")
+		if err != nil {
+			log.Fatal("failed to retrieve skip-install flag")
+		}
+		flagOutput := scaffold.OutputFormat(cmd.Flag("output").Value.String())
+
+		featureFlags := cmd.Flag("feature").Value.String()
+		featureValues := []string{}
+		if featureFlags != "" {
+			featureValues = strings.Split(featureFlags, ",")
+		}
+
+		spec := scaffold.BuildSpec(
+			flagName,
+			flagDBDriver,
+			featureValues,
+			flagGit,
+			flagSupabaseMode,
+			flagFrontendFramework,
+			flagSvelteKitTemplate,
+			flagSvelteKitTypes,
+			flagSvelteKitPackageManager,
+			scaffold.ExecutionOptions{
+				DryRun:        flagDryRun,
+				NoInteractive: flagNoInteractive,
+				SkipInstall:   flagSkipInstall,
+				Output:        flagOutput,
+			},
+		)
+
+		if err := scaffold.ValidateSpec(spec); err != nil {
+			cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
+		}
 
 		options := Options{
 			ProjectName: &textinput.Output{},
@@ -147,6 +195,9 @@ var createCmd = &cobra.Command{
 		}
 
 		if project.ProjectName == "" {
+			if flagNoInteractive {
+				cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("project name is required when --no-interactive is set")).Err())
+			}
 			tprogram := tea.NewProgram(textinput.InitialTextInputModel(options.ProjectName, "What is the name of your project?", project))
 			if _, err := tprogram.Run(); err != nil {
 				log.Printf("Name of project contains an error: %v", err)
@@ -176,6 +227,9 @@ var createCmd = &cobra.Command{
 		// project.ProjectType is already set to flags.Gin above
 
 		if project.DBDriver == "" {
+			if flagNoInteractive {
+				cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("database driver is required when --no-interactive is set")).Err())
+			}
 			step := steps.Steps["driver"]
 			tprogram = tea.NewProgram(singleSelection.InitialModelMulti(step.Options, options.DBDriver, step.Headers, project))
 			if _, err := tprogram.Run(); err != nil {
@@ -224,6 +278,9 @@ var createCmd = &cobra.Command{
 
 		// Frontend Framework Selection Step
 		if flagFrontendFramework == "" {
+			if flagNoInteractive {
+				cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("frontend framework is required when --no-interactive is set")).Err())
+			}
 			step := steps.Steps["frontend"]
 			tprogram = tea.NewProgram(singleSelection.InitialModelMulti(step.Options, options.Frontend, step.Headers, project))
 			if _, err := tprogram.Run(); err != nil {
@@ -257,6 +314,9 @@ var createCmd = &cobra.Command{
 		}
 
 		if project.GitOptions == "" {
+			if flagNoInteractive {
+				cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("git mode is required when --no-interactive is set")).Err())
+			}
 			step := steps.Steps["git"]
 			tprogram = tea.NewProgram(singleSelection.InitialModelMulti(step.Options, options.Git, step.Headers, project))
 			if _, err := tprogram.Run(); err != nil {
@@ -277,6 +337,47 @@ var createCmd = &cobra.Command{
 			cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
 		}
 		project.AbsolutePath = currentWorkingDir
+		spec = scaffold.BuildSpec(
+			project.ProjectName,
+			project.DBDriver,
+			mapKeys(options.Advanced.Choices, project.AdvancedOptions),
+			project.GitOptions,
+			flagSupabaseMode,
+			flags.FrontendFramework(cmd.Flag("frontend").Value.String()),
+			flagSvelteKitTemplate,
+			flagSvelteKitTypes,
+			flagSvelteKitPackageManager,
+			scaffold.ExecutionOptions{
+				DryRun:        flagDryRun,
+				NoInteractive: flagNoInteractive,
+				SkipInstall:   flagSkipInstall,
+				Output:        flagOutput,
+			},
+		)
+
+		if err := scaffold.ValidateSpec(spec); err != nil {
+			cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
+		}
+
+		if spec.Execution.DryRun {
+			plan := scaffold.BuildPlan(spec, currentWorkingDir)
+			if err := scaffold.WritePlan(os.Stdout, plan, spec.Execution.Output); err != nil {
+				cobra.CheckErr(err)
+			}
+			return
+		}
+
+		if spec.Execution.SkipInstall {
+			project.SkipInstall = true
+		}
+
+		if spec.Execution.Output == scaffold.OutputJSON {
+			encoder := json.NewEncoder(os.Stdout)
+			encoder.SetIndent("", "  ")
+			if err := encoder.Encode(map[string]any{"mode": "apply", "spec": spec}); err != nil {
+				cobra.CheckErr(err)
+			}
+		}
 
 		spinner := tea.NewProgram(spinner.InitialModelNew())
 
