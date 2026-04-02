@@ -194,57 +194,12 @@ var createCmd = &cobra.Command{
 			fmt.Println(headerStyle.Render("*** Advanced Mode Enabled ***\n\n"))
 		}
 
-		if project.ProjectName == "" {
-			if flagNoInteractive {
-				cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("project name is required when --no-interactive is set")).Err())
-			}
-			tprogram := tea.NewProgram(textinput.InitialTextInputModel(options.ProjectName, "What is the name of your project?", project))
-			if _, err := tprogram.Run(); err != nil {
-				log.Printf("Name of project contains an error: %v", err)
-				cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
-			}
-
-			if options.ProjectName.Output != "" && !utils.ValidateModuleName(options.ProjectName.Output) {
-				err = fmt.Errorf("'%s' is not a valid module name. Please choose a different name", options.ProjectName.Output)
-				cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
-			}
-
-			rootDirName = utils.GetRootDir(options.ProjectName.Output)
-			if doesDirectoryExistAndIsNotEmpty(rootDirName) {
-				err = fmt.Errorf("directory '%s' already exists and is not empty. Please choose a different name", rootDirName)
-				cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
-			}
-			project.ExitCLI(tprogram)
-
-			project.ProjectName = options.ProjectName.Output
-			err := cmd.Flag("name").Value.Set(project.ProjectName)
-			if err != nil {
-				log.Fatal("failed to set the name flag value", err)
-			}
-		}
+		collectProjectName(cmd, project, options, flagNoInteractive)
 
 		// Skip framework selection - always use Gin
 		// project.ProjectType is already set to flags.Gin above
 
-		if project.DBDriver == "" {
-			if flagNoInteractive {
-				cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("database driver is required when --no-interactive is set")).Err())
-			}
-			step := steps.Steps["driver"]
-			tprogram = tea.NewProgram(singleSelection.InitialModelMulti(step.Options, options.DBDriver, step.Headers, project))
-			if _, err := tprogram.Run(); err != nil {
-				cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
-			}
-			project.ExitCLI(tprogram)
-
-			// this type casting is always safe since the user interface can
-			// only pass strings that can be cast to a flags.Database instance
-			project.DBDriver = flags.Database(strings.ToLower(options.DBDriver.Choice))
-			err := cmd.Flag("driver").Value.Set(project.DBDriver.String())
-			if err != nil {
-				log.Fatal("failed to set the driver flag value", err)
-			}
-		}
+		collectDatabaseDriver(cmd, project, options, steps, flagNoInteractive)
 
 		if flagAdvanced {
 
@@ -276,60 +231,9 @@ var createCmd = &cobra.Command{
 
 		}
 
-		// Frontend Framework Selection Step
-		if flagFrontendFramework == "" {
-			if flagNoInteractive {
-				cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("frontend framework is required when --no-interactive is set")).Err())
-			}
-			step := steps.Steps["frontend"]
-			tprogram = tea.NewProgram(singleSelection.InitialModelMulti(step.Options, options.Frontend, step.Headers, project))
-			if _, err := tprogram.Run(); err != nil {
-				cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
-			}
-			project.ExitCLI(tprogram)
+		collectFrontendFramework(cmd, project, options, steps, flagFrontendFramework, flagNoInteractive)
 
-			// Convert display choice to flag value
-			var frontendChoice flags.FrontendFramework
-			switch strings.ToLower(options.Frontend.Choice) {
-			case "sveltekit":
-				frontendChoice = flags.SvelteKitFrontend
-			case "next.js":
-				frontendChoice = flags.NextJSFrontend
-			case "none":
-				frontendChoice = flags.NoneFrontend
-			default:
-				frontendChoice = flags.NoneFrontend
-			}
-			err := cmd.Flag("frontend").Value.Set(frontendChoice.String())
-			if err != nil {
-				log.Fatal("failed to set the frontend flag value", err)
-			}
-		} else {
-			// Use the provided flag value
-			frontendChoice := flagFrontendFramework
-			err := cmd.Flag("frontend").Value.Set(frontendChoice.String())
-			if err != nil {
-				log.Fatal("failed to set the frontend flag value", err)
-			}
-		}
-
-		if project.GitOptions == "" {
-			if flagNoInteractive {
-				cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("git mode is required when --no-interactive is set")).Err())
-			}
-			step := steps.Steps["git"]
-			tprogram = tea.NewProgram(singleSelection.InitialModelMulti(step.Options, options.Git, step.Headers, project))
-			if _, err := tprogram.Run(); err != nil {
-				cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
-			}
-			project.ExitCLI(tprogram)
-
-			project.GitOptions = flags.Git(strings.ToLower(options.Git.Choice))
-			err := cmd.Flag("git").Value.Set(project.GitOptions.String())
-			if err != nil {
-				log.Fatal("failed to set the git flag value", err)
-			}
-		}
+		collectGitMode(cmd, project, options, steps, flagNoInteractive)
 
 		currentWorkingDir, err := os.Getwd()
 		if err != nil {
@@ -372,83 +276,9 @@ var createCmd = &cobra.Command{
 			}
 		}
 
-		spinner := tea.NewProgram(spinner.InitialModelNew())
-
-		// add synchronization to wait for spinner to finish
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if _, err := spinner.Run(); err != nil {
-				cobra.CheckErr(err)
-			}
-		}()
-
-		defer func() {
-			if r := recover(); r != nil {
-				fmt.Println("The program encountered an unexpected issue and had to exit. The error was:", r)
-				fmt.Println("If you continue to experience this issue, please post a message on our GitHub page or join our Discord server for support.")
-				if releaseErr := spinner.ReleaseTerminal(); releaseErr != nil {
-					log.Printf("Problem releasing terminal: %v", releaseErr)
-				}
-			}
-		}()
-
-		// This calls the templates
-		err = project.CreateMainFile()
-		if err != nil {
-			if releaseErr := spinner.ReleaseTerminal(); releaseErr != nil {
-				log.Printf("Problem releasing terminal: %v", releaseErr)
-			}
-			log.Printf("Problem creating files for project.")
-			cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
-		}
-
-		// Release spinner before SvelteKit setup to avoid terminal conflicts
-		err = spinner.ReleaseTerminal()
-		if err != nil {
-			log.Printf("Could not release terminal: %v", err)
-		}
-
-		// Handle Frontend framework creation if selected
 		frontendFramework := flags.FrontendFramework(cmd.Flag("frontend").Value.String())
-		runOptionalBootstrap(project, frontendFramework, flagSvelteKitTemplate, flagSvelteKitTypes, flagSvelteKitPackageManager)
-
-		fmt.Println(headerStyle.Render("\n🎉 Project created successfully!\n"))
-		fmt.Println(successStyle.Render("Next steps:"))
-		fmt.Printf("• %-25s %s\n", fmt.Sprintf("cd %s", utils.GetRootDir(project.ProjectName)), secondaryStyle.Render("# Change to project directory"))
-
-		if project.DBDriver == flags.Supabase {
-			if flagSupabaseMode == flags.LocalDB {
-				fmt.Printf("• %-25s %s\n", "supabase status", secondaryStyle.Render("# Check Supabase local instance"))
-			} else {
-				fmt.Printf("• %-25s %s\n", "supabase link", secondaryStyle.Render("# Link to your Supabase project"))
-				fmt.Printf("• %-25s %s\n", "supabase start", secondaryStyle.Render("# Start local development"))
-			}
-			if project.AdvancedOptions[string(flags.Sqlc)] {
-				fmt.Printf("• %-25s %s\n", "sqlc generate", secondaryStyle.Render("# Generate type-safe Go code from SQL"))
-			}
-		} else {
-			if project.AdvancedOptions[string(flags.Sqlc)] {
-				fmt.Printf("• %-25s %s\n", "make sqlc-generate", secondaryStyle.Render("# Generate type-safe Go code from SQL"))
-			}
-			if project.DBDriver != "none" {
-				fmt.Printf("• %-25s %s\n", "make docker-run", secondaryStyle.Render("# Start PostgreSQL database"))
-			}
-		}
-		fmt.Printf("• %-25s %s\n", "make run", secondaryStyle.Render("# Start the server"))
-
-		switch frontendFramework {
-		case flags.SvelteKitFrontend:
-			frontendName := project.ProjectName + "-frontend"
-			fmt.Printf("• %-25s %s\n", fmt.Sprintf("cd %s", frontendName), secondaryStyle.Render("# Switch to frontend directory"))
-			fmt.Printf("• %-25s %s\n", "pnpm dev", secondaryStyle.Render("# Start SvelteKit development server"))
-		case flags.NextJSFrontend:
-			frontendName := project.ProjectName + "-frontend"
-			fmt.Printf("• %-25s %s\n", fmt.Sprintf("cd %s", frontendName), secondaryStyle.Render("# Switch to frontend directory"))
-			fmt.Printf("• %-25s %s\n", "pnpm dev", secondaryStyle.Render("# Start Next.js development server"))
-		}
-		fmt.Println()
+		executeProjectCreation(project, frontendFramework, flagSvelteKitTemplate, flagSvelteKitTypes, flagSvelteKitPackageManager)
+		printNextSteps(project, frontendFramework, flagSupabaseMode)
 	},
 }
 
@@ -588,6 +418,195 @@ func runOptionalBootstrap(project *program.Project, frontendFramework flags.Fron
 			fmt.Println(secondaryStyle.Render(fmt.Sprintf("   npx create-next-app@latest %s-frontend", project.ProjectName)))
 		}
 	}
+}
+
+func collectProjectName(cmd *cobra.Command, project *program.Project, options Options, noInteractive bool) {
+	if project.ProjectName != "" {
+		return
+	}
+	if noInteractive {
+		cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("project name is required when --no-interactive is set")).Err())
+	}
+	tprogram := tea.NewProgram(textinput.InitialTextInputModel(options.ProjectName, "What is the name of your project?", project))
+	if _, err := tprogram.Run(); err != nil {
+		log.Printf("Name of project contains an error: %v", err)
+		cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
+	}
+	if options.ProjectName.Output != "" && !utils.ValidateModuleName(options.ProjectName.Output) {
+		err := fmt.Errorf("'%s' is not a valid module name. Please choose a different name", options.ProjectName.Output)
+		cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
+	}
+	rootDirName := utils.GetRootDir(options.ProjectName.Output)
+	if doesDirectoryExistAndIsNotEmpty(rootDirName) {
+		err := fmt.Errorf("directory '%s' already exists and is not empty. Please choose a different name", rootDirName)
+		cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
+	}
+	project.ExitCLI(tprogram)
+	project.ProjectName = options.ProjectName.Output
+	if err := cmd.Flag("name").Value.Set(project.ProjectName); err != nil {
+		log.Fatal("failed to set the name flag value", err)
+	}
+}
+
+func collectDatabaseDriver(cmd *cobra.Command, project *program.Project, options Options, steps *steps.Steps, noInteractive bool) {
+	if project.DBDriver != "" {
+		return
+	}
+	if noInteractive {
+		cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("database driver is required when --no-interactive is set")).Err())
+	}
+	step := steps.Steps["driver"]
+	tprogram := tea.NewProgram(singleSelection.InitialModelMulti(step.Options, options.DBDriver, step.Headers, project))
+	if _, err := tprogram.Run(); err != nil {
+		cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
+	}
+	project.ExitCLI(tprogram)
+	project.DBDriver = flags.Database(strings.ToLower(options.DBDriver.Choice))
+	if err := cmd.Flag("driver").Value.Set(project.DBDriver.String()); err != nil {
+		log.Fatal("failed to set the driver flag value", err)
+	}
+}
+
+func collectFrontendFramework(cmd *cobra.Command, project *program.Project, options Options, steps *steps.Steps, current flags.FrontendFramework, noInteractive bool) {
+	if current == "" {
+		if noInteractive {
+			cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("frontend framework is required when --no-interactive is set")).Err())
+		}
+		step := steps.Steps["frontend"]
+		tprogram := tea.NewProgram(singleSelection.InitialModelMulti(step.Options, options.Frontend, step.Headers, project))
+		if _, err := tprogram.Run(); err != nil {
+			cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
+		}
+		project.ExitCLI(tprogram)
+		current = frontendChoiceFromSelection(options.Frontend.Choice)
+	}
+	if err := cmd.Flag("frontend").Value.Set(current.String()); err != nil {
+		log.Fatal("failed to set the frontend flag value", err)
+	}
+}
+
+func collectGitMode(cmd *cobra.Command, project *program.Project, options Options, steps *steps.Steps, noInteractive bool) {
+	if project.GitOptions != "" {
+		return
+	}
+	if noInteractive {
+		cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("git mode is required when --no-interactive is set")).Err())
+	}
+	step := steps.Steps["git"]
+	tprogram := tea.NewProgram(singleSelection.InitialModelMulti(step.Options, options.Git, step.Headers, project))
+	if _, err := tprogram.Run(); err != nil {
+		cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
+	}
+	project.ExitCLI(tprogram)
+	project.GitOptions = flags.Git(strings.ToLower(options.Git.Choice))
+	if err := cmd.Flag("git").Value.Set(project.GitOptions.String()); err != nil {
+		log.Fatal("failed to set the git flag value", err)
+	}
+}
+
+func frontendChoiceFromSelection(choice string) flags.FrontendFramework {
+	switch strings.ToLower(choice) {
+	case "sveltekit":
+		return flags.SvelteKitFrontend
+	case "next.js":
+		return flags.NextJSFrontend
+	case "none":
+		return flags.NoneFrontend
+	default:
+		return flags.NoneFrontend
+	}
+}
+
+func executeProjectCreation(project *program.Project, frontendFramework flags.FrontendFramework, template flags.SvelteKitTemplate, types flags.SvelteKitTypes, packageManager flags.SvelteKitPackageManager) {
+	spinnerProgram := tea.NewProgram(spinner.InitialModelNew())
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if _, err := spinnerProgram.Run(); err != nil {
+			cobra.CheckErr(err)
+		}
+	}()
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("The program encountered an unexpected issue and had to exit. The error was:", r)
+			fmt.Println("If you continue to experience this issue, please post a message on our GitHub page or join our Discord server for support.")
+			if releaseErr := spinnerProgram.ReleaseTerminal(); releaseErr != nil {
+				log.Printf("Problem releasing terminal: %v", releaseErr)
+			}
+		}
+	}()
+
+	err := project.CreateMainFile()
+	if err != nil {
+		if releaseErr := spinnerProgram.ReleaseTerminal(); releaseErr != nil {
+			log.Printf("Problem releasing terminal: %v", releaseErr)
+		}
+		log.Printf("Problem creating files for project.")
+		cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
+	}
+
+	if err := spinnerProgram.ReleaseTerminal(); err != nil {
+		log.Printf("Could not release terminal: %v", err)
+	}
+
+	runOptionalBootstrap(project, frontendFramework, template, types, packageManager)
+}
+
+func printNextSteps(project *program.Project, frontendFramework flags.FrontendFramework, supabaseMode flags.SupabaseMode) {
+	for _, line := range nextStepLines(project, frontendFramework, supabaseMode) {
+		fmt.Println(line)
+	}
+	fmt.Println()
+}
+
+func nextStepLines(project *program.Project, frontendFramework flags.FrontendFramework, supabaseMode flags.SupabaseMode) []string {
+	lines := []string{
+		headerStyle.Render("\n🎉 Project created successfully!\n"),
+		successStyle.Render("Next steps:"),
+		fmt.Sprintf("• %-25s %s", fmt.Sprintf("cd %s", utils.GetRootDir(project.ProjectName)), secondaryStyle.Render("# Change to project directory")),
+	}
+
+	if project.DBDriver == flags.Supabase {
+		if supabaseMode == flags.LocalDB {
+			lines = append(lines, fmt.Sprintf("• %-25s %s", "supabase status", secondaryStyle.Render("# Check Supabase local instance")))
+		} else {
+			lines = append(lines,
+				fmt.Sprintf("• %-25s %s", "supabase link", secondaryStyle.Render("# Link to your Supabase project")),
+				fmt.Sprintf("• %-25s %s", "supabase start", secondaryStyle.Render("# Start local development")),
+			)
+		}
+		if project.AdvancedOptions[string(flags.Sqlc)] {
+			lines = append(lines, fmt.Sprintf("• %-25s %s", "sqlc generate", secondaryStyle.Render("# Generate type-safe Go code from SQL")))
+		}
+	} else {
+		if project.AdvancedOptions[string(flags.Sqlc)] {
+			lines = append(lines, fmt.Sprintf("• %-25s %s", "make sqlc-generate", secondaryStyle.Render("# Generate type-safe Go code from SQL")))
+		}
+		if project.DBDriver != "none" {
+			lines = append(lines, fmt.Sprintf("• %-25s %s", "make docker-run", secondaryStyle.Render("# Start PostgreSQL database")))
+		}
+	}
+
+	lines = append(lines, fmt.Sprintf("• %-25s %s", "make run", secondaryStyle.Render("# Start the server")))
+
+	switch frontendFramework {
+	case flags.SvelteKitFrontend:
+		frontendName := project.ProjectName + "-frontend"
+		lines = append(lines,
+			fmt.Sprintf("• %-25s %s", fmt.Sprintf("cd %s", frontendName), secondaryStyle.Render("# Switch to frontend directory")),
+			fmt.Sprintf("• %-25s %s", "pnpm dev", secondaryStyle.Render("# Start SvelteKit development server")),
+		)
+	case flags.NextJSFrontend:
+		frontendName := project.ProjectName + "-frontend"
+		lines = append(lines,
+			fmt.Sprintf("• %-25s %s", fmt.Sprintf("cd %s", frontendName), secondaryStyle.Render("# Switch to frontend directory")),
+			fmt.Sprintf("• %-25s %s", "pnpm dev", secondaryStyle.Render("# Start Next.js development server")),
+		)
+	}
+
+	return lines
 }
 
 func buildScaffoldSpec(

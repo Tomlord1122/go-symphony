@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Tomlord1122/go-symphony/cmd/flags"
@@ -72,5 +73,35 @@ func TestMapKeysMergesEnabledChoices(t *testing.T) {
 	}
 	if seen["websocket"] {
 		t.Fatal("did not expect disabled websocket key")
+	}
+}
+
+func TestFrontendChoiceFromSelection(t *testing.T) {
+	if got := frontendChoiceFromSelection("SvelteKit"); got != flags.SvelteKitFrontend {
+		t.Fatalf("expected sveltekit, got %s", got)
+	}
+	if got := frontendChoiceFromSelection("Next.js"); got != flags.NextJSFrontend {
+		t.Fatalf("expected nextjs, got %s", got)
+	}
+	if got := frontendChoiceFromSelection("unknown"); got != flags.NoneFrontend {
+		t.Fatalf("expected none, got %s", got)
+	}
+}
+
+func TestNextStepLinesForSupabaseAndFrontend(t *testing.T) {
+	project := &program.Project{
+		ProjectName:     "example/app",
+		DBDriver:        flags.Supabase,
+		AdvancedOptions: map[string]bool{flags.Sqlc: true},
+	}
+
+	lines := nextStepLines(project, flags.SvelteKitFrontend, flags.LocalDB)
+	joined := strings.Join(lines, "\n")
+
+	checks := []string{"supabase status", "sqlc generate", "pnpm dev", "cd example/app-frontend"}
+	for _, check := range checks {
+		if !strings.Contains(joined, check) {
+			t.Fatalf("expected output to contain %q, got %s", check, joined)
+		}
 	}
 }
