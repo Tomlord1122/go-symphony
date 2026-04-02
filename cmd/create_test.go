@@ -158,3 +158,16 @@ func TestBuildPlanSpecFromCommand(t *testing.T) {
 		t.Fatalf("expected json output, got %s", spec.Execution.Output)
 	}
 }
+
+func TestNextStepLinesForPostgresWithoutDockerDoesNotSuggestDockerRun(t *testing.T) {
+	project := &program.Project{
+		ProjectName:     "example/app",
+		DBDriver:        flags.Postgres,
+		AdvancedOptions: map[string]bool{},
+	}
+
+	joined := strings.Join(nextStepLines(project, flags.NoneFrontend, ""), "\n")
+	if strings.Contains(joined, "make docker-run") {
+		t.Fatalf("did not expect docker-run in next steps: %s", joined)
+	}
+}

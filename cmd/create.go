@@ -279,7 +279,7 @@ var createCmd = &cobra.Command{
 		}
 
 		frontendFramework := flags.FrontendFramework(cmd.Flag("frontend").Value.String())
-		executeProjectCreation(project, frontendFramework, flagSvelteKitTemplate, flagSvelteKitTypes, flagSvelteKitPackageManager)
+		executeProjectCreation(project, frontendFramework, flagSvelteKitTemplate, flagSvelteKitTypes, flagSvelteKitPackageManager, !flagNoInteractive)
 		printNextSteps(project, frontendFramework, flagSupabaseMode)
 	},
 }
@@ -519,38 +519,45 @@ func frontendChoiceFromSelection(choice string) flags.FrontendFramework {
 	}
 }
 
-func executeProjectCreation(project *program.Project, frontendFramework flags.FrontendFramework, template flags.SvelteKitTemplate, types flags.SvelteKitTypes, packageManager flags.SvelteKitPackageManager) {
-	spinnerProgram := tea.NewProgram(spinner.InitialModelNew())
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if _, err := spinnerProgram.Run(); err != nil {
-			cobra.CheckErr(err)
-		}
-	}()
+func executeProjectCreation(project *program.Project, frontendFramework flags.FrontendFramework, template flags.SvelteKitTemplate, types flags.SvelteKitTypes, packageManager flags.SvelteKitPackageManager, useSpinner bool) {
+	if useSpinner {
+		spinnerProgram := tea.NewProgram(spinner.InitialModelNew())
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := spinnerProgram.Run(); err != nil {
+				cobra.CheckErr(err)
+			}
+		}()
 
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("The program encountered an unexpected issue and had to exit. The error was:", r)
-			fmt.Println("If you continue to experience this issue, please post a message on our GitHub page or join our Discord server for support.")
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("The program encountered an unexpected issue and had to exit. The error was:", r)
+				fmt.Println("If you continue to experience this issue, please post a message on our GitHub page or join our Discord server for support.")
+				if releaseErr := spinnerProgram.ReleaseTerminal(); releaseErr != nil {
+					log.Printf("Problem releasing terminal: %v", releaseErr)
+				}
+			}
+		}()
+
+		err := project.CreateMainFile()
+		if err != nil {
 			if releaseErr := spinnerProgram.ReleaseTerminal(); releaseErr != nil {
 				log.Printf("Problem releasing terminal: %v", releaseErr)
 			}
+			log.Printf("Problem creating files for project.")
+			cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
 		}
-	}()
 
-	err := project.CreateMainFile()
-	if err != nil {
-		if releaseErr := spinnerProgram.ReleaseTerminal(); releaseErr != nil {
-			log.Printf("Problem releasing terminal: %v", releaseErr)
+		if err := spinnerProgram.ReleaseTerminal(); err != nil {
+			log.Printf("Could not release terminal: %v", err)
 		}
-		log.Printf("Problem creating files for project.")
-		cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
-	}
-
-	if err := spinnerProgram.ReleaseTerminal(); err != nil {
-		log.Printf("Could not release terminal: %v", err)
+	} else {
+		if err := project.CreateMainFile(); err != nil {
+			log.Printf("Problem creating files for project.")
+			cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
+		}
 	}
 
 	runOptionalBootstrap(project, frontendFramework, template, types, packageManager)
