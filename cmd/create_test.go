@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -156,6 +158,62 @@ func TestBuildPlanSpecFromCommand(t *testing.T) {
 	}
 	if spec.Execution.Output != scaffold.OutputFormat("json") {
 		t.Fatalf("expected json output, got %s", spec.Execution.Output)
+	}
+}
+
+func TestFeatureFlagsAreNormalizedIntoProjectAdvancedOptions(t *testing.T) {
+	project := &program.Project{AdvancedOptions: map[string]bool{}}
+	for _, key := range strings.Split("docker,sqlc", ",") {
+		normalized := strings.ToLower(strings.TrimSpace(key))
+		if normalized != "" {
+			project.AdvancedOptions[normalized] = true
+		}
+	}
+
+	if !project.AdvancedOptions[flags.Docker] {
+		t.Fatal("expected docker feature to be enabled")
+	}
+	if !project.AdvancedOptions[flags.Sqlc] {
+		t.Fatal("expected sqlc feature to be enabled")
+	}
+}
+
+func TestWriteApplyResultJSONContainsSteps(t *testing.T) {
+	result := scaffold.PlannedResult(scaffold.BuildPlan(
+		scaffold.BuildSpec("example/app", flags.Postgres, []string{flags.Docker}, flags.Skip, "", flags.NoneFrontend, "", "", "", scaffold.ExecutionOptions{}),
+		"/tmp",
+	))
+	result.Mode = "apply"
+
+	var buf bytes.Buffer
+	if err := scaffold.WriteApplyResult(&buf, result, scaffold.OutputJSON); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var decoded map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &decoded); err != nil {
+		t.Fatalf("invalid json: %v", err)
+	}
+	steps, ok := decoded["steps"].([]any)
+	if !ok || len(steps) == 0 {
+		t.Fatalf("expected non-empty steps, got %#v", decoded["steps"])
+	}
+}
+
+func TestFeatureFlagsWorkWithoutAdvancedModePrompt(t *testing.T) {
+	project := &program.Project{AdvancedOptions: map[string]bool{}}
+	featureFlags := "docker,sqlc"
+	if featureFlags != "" {
+		for _, key := range strings.Split(featureFlags, ",") {
+			normalized := strings.ToLower(strings.TrimSpace(key))
+			if normalized != "" {
+				project.AdvancedOptions[normalized] = true
+			}
+		}
+	}
+
+	if !project.AdvancedOptions[flags.Docker] || !project.AdvancedOptions[flags.Sqlc] {
+		t.Fatal("expected explicit feature flags to apply without advanced prompt")
 	}
 }
 

@@ -181,7 +181,9 @@ var createCmd = &cobra.Command{
 		}
 
 		steps := steps.InitSteps(flags.Gin, flagDBDriver)
-		fmt.Printf("%s\n", logoStyle.Render(logo))
+		if flagOutput != scaffold.OutputJSON {
+			fmt.Printf("%s\n", logoStyle.Render(logo))
+		}
 
 		// Advanced option steps:
 		flagAdvanced, err := cmd.Flags().GetBool("advanced")
@@ -200,34 +202,32 @@ var createCmd = &cobra.Command{
 
 		collectDatabaseDriver(cmd, project, options, steps, flagNoInteractive)
 
-		if flagAdvanced {
-
-			featureFlags := cmd.Flag("feature").Value.String()
-
-			if featureFlags != "" {
-				featuresFlagValues := strings.Split(featureFlags, ",")
-				for _, key := range featuresFlagValues {
-					project.AdvancedOptions[key] = true
-				}
-			} else {
-				step := steps.Steps["advanced"]
-				tprogram = tea.NewProgram((multiSelection.InitialModelMultiSelect(step.Options, options.Advanced, step.Headers, project)))
-				if _, err := tprogram.Run(); err != nil {
-					cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
-				}
-				project.ExitCLI(tprogram)
-				for key, opt := range options.Advanced.Choices {
-					project.AdvancedOptions[strings.ToLower(key)] = opt
-					err := cmd.Flag("feature").Value.Set(strings.ToLower(key))
-					if err != nil {
-						log.Fatal("failed to set the feature flag value", err)
-					}
-				}
-				if err != nil {
-					log.Fatal("failed to set the htmx option", err)
+		featureFlags = cmd.Flag("feature").Value.String()
+		if featureFlags != "" {
+			featuresFlagValues := strings.Split(featureFlags, ",")
+			for _, key := range featuresFlagValues {
+				normalized := strings.ToLower(strings.TrimSpace(key))
+				if normalized != "" {
+					project.AdvancedOptions[normalized] = true
 				}
 			}
-
+		} else if flagAdvanced {
+			step := steps.Steps["advanced"]
+			tprogram = tea.NewProgram((multiSelection.InitialModelMultiSelect(step.Options, options.Advanced, step.Headers, project)))
+			if _, err := tprogram.Run(); err != nil {
+				cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
+			}
+			project.ExitCLI(tprogram)
+			for key, opt := range options.Advanced.Choices {
+				project.AdvancedOptions[strings.ToLower(key)] = opt
+				err := cmd.Flag("feature").Value.Set(strings.ToLower(key))
+				if err != nil {
+					log.Fatal("failed to set the feature flag value", err)
+				}
+			}
+			if err != nil {
+				log.Fatal("failed to set the htmx option", err)
+			}
 		}
 
 		collectFrontendFramework(cmd, project, options, steps, flagFrontendFramework, flagNoInteractive)
@@ -268,11 +268,8 @@ var createCmd = &cobra.Command{
 		}
 
 		if spec.Execution.Output == scaffold.OutputJSON {
-			result := scaffold.ApplyResult{
-				Mode:      "apply",
-				Spec:      spec,
-				Succeeded: true,
-			}
+			result := scaffold.PlannedResult(scaffold.BuildPlan(spec, currentWorkingDir))
+			result.Mode = "apply"
 			if err := scaffold.WriteApplyResult(os.Stdout, result, spec.Execution.Output); err != nil {
 				cobra.CheckErr(err)
 			}
@@ -280,7 +277,9 @@ var createCmd = &cobra.Command{
 
 		frontendFramework := flags.FrontendFramework(cmd.Flag("frontend").Value.String())
 		executeProjectCreation(project, frontendFramework, flagSvelteKitTemplate, flagSvelteKitTypes, flagSvelteKitPackageManager, !flagNoInteractive)
-		printNextSteps(project, frontendFramework, flagSupabaseMode)
+		if spec.Execution.Output != scaffold.OutputJSON {
+			printNextSteps(project, frontendFramework, flagSupabaseMode)
+		}
 	},
 }
 
