@@ -212,6 +212,9 @@ var createCmd = &cobra.Command{
 				}
 			}
 		} else if flagAdvanced {
+			if flagNoInteractive {
+				cobra.CheckErr(textinput.CreateErrorInputModel(fmt.Errorf("advanced features must be provided with --feature when --no-interactive is set")).Err())
+			}
 			step := steps.Steps["advanced"]
 			tprogram = tea.NewProgram((multiSelection.InitialModelMultiSelect(step.Options, options.Advanced, step.Headers, project)))
 			if _, err := tprogram.Run(); err != nil {
@@ -224,9 +227,6 @@ var createCmd = &cobra.Command{
 				if err != nil {
 					log.Fatal("failed to set the feature flag value", err)
 				}
-			}
-			if err != nil {
-				log.Fatal("failed to set the htmx option", err)
 			}
 		}
 
@@ -265,14 +265,6 @@ var createCmd = &cobra.Command{
 
 		if spec.Execution.SkipInstall {
 			project.SkipInstall = true
-		}
-
-		if spec.Execution.Output == scaffold.OutputJSON {
-			result := scaffold.PlannedResult(scaffold.BuildPlan(spec, currentWorkingDir))
-			result.Mode = "apply"
-			if err := scaffold.WriteApplyResult(os.Stdout, result, spec.Execution.Output); err != nil {
-				cobra.CheckErr(err)
-			}
 		}
 
 		frontendFramework := flags.FrontendFramework(cmd.Flag("frontend").Value.String())
@@ -559,7 +551,9 @@ func executeProjectCreation(project *program.Project, frontendFramework flags.Fr
 		}
 	}
 
-	runOptionalBootstrap(project, frontendFramework, template, types, packageManager)
+	if !project.SkipInstall {
+		runOptionalBootstrap(project, frontendFramework, template, types, packageManager)
+	}
 }
 
 func printNextSteps(project *program.Project, frontendFramework flags.FrontendFramework, supabaseMode flags.SupabaseMode) {

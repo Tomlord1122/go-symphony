@@ -98,10 +98,6 @@ func (s CreateSpec) HasFeature(feature string) bool {
 }
 
 func ValidateSpec(spec CreateSpec) error {
-	if spec.ProjectType == "" {
-		spec.ProjectType = flags.Gin
-	}
-
 	if spec.ProjectName == "" {
 		if spec.Execution.NoInteractive {
 			return fmt.Errorf("project name is required when --no-interactive is set")
