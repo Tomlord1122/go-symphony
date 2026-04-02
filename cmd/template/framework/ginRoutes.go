@@ -3,7 +3,7 @@ package framework
 import (
 	_ "embed"
 
-	"github.com/Tomlord1122/go-symphony/cmd/template/advanced"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/template/advanced"
 )
 
 //go:embed files/routes/gin.go.tmpl

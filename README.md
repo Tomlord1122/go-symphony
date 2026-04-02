@@ -26,7 +26,13 @@ Check out a video walkthrough of go-symphony in action: [YouTube Demo](https://w
 ### Install with Go
 
 ```bash
-go install github.com/Tomlord1122/go-symphony@latest
+go install github.com/Tomlord1122/go-symphony/v2@latest
+```
+
+Install a specific v2 release:
+
+```bash
+go install github.com/Tomlord1122/go-symphony/v2@v2.0.1
 ```
 
 ### Install from Releases

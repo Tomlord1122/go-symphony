@@ -3,7 +3,7 @@ package scaffold
 import (
 	"path/filepath"
 
-	"github.com/Tomlord1122/go-symphony/cmd/flags"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/flags"
 )
 
 type StepKind string

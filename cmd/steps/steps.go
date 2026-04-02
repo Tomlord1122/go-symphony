@@ -2,7 +2,7 @@
 // each step of the CLI
 package steps
 
-import "github.com/Tomlord1122/go-symphony/cmd/flags"
+import "github.com/Tomlord1122/go-symphony/v2/cmd/flags"
 
 // A StepSchema contains the data that is used
 // for an individual step of the CLI

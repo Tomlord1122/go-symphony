@@ -1,4 +1,4 @@
-module github.com/Tomlord1122/go-symphony
+module github.com/Tomlord1122/go-symphony/v2
 
 go 1.23.0
 

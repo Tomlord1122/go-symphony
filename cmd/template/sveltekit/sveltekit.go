@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Tomlord1122/go-symphony/cmd/flags"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/flags"
 )
 
 // SvelteKitManager handles SvelteKit project creation

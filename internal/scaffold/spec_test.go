@@ -3,7 +3,7 @@ package scaffold
 import (
 	"testing"
 
-	"github.com/Tomlord1122/go-symphony/cmd/flags"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/flags"
 )
 
 func TestValidateSpecNoInteractiveRequiresFields(t *testing.T) {

@@ -5,8 +5,8 @@ package singleSelection
 import (
 	"fmt"
 
-	"github.com/Tomlord1122/go-symphony/cmd/program"
-	"github.com/Tomlord1122/go-symphony/cmd/steps"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/program"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/steps"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"

@@ -5,11 +5,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Tomlord1122/go-symphony/cmd/flags"
-	"github.com/Tomlord1122/go-symphony/cmd/program"
-	"github.com/Tomlord1122/go-symphony/cmd/ui/textinput"
-	"github.com/Tomlord1122/go-symphony/cmd/utils"
-	"github.com/Tomlord1122/go-symphony/internal/scaffold"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/flags"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/program"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/ui/textinput"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/utils"
+	"github.com/Tomlord1122/go-symphony/v2/internal/scaffold"
 	"github.com/spf13/cobra"
 )
 

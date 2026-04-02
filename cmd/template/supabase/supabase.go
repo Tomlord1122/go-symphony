@@ -11,8 +11,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/Tomlord1122/go-symphony/cmd/flags"
-	tpl "github.com/Tomlord1122/go-symphony/cmd/template"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/flags"
+	tpl "github.com/Tomlord1122/go-symphony/v2/cmd/template"
 )
 
 //go:embed files/supabase_env.tmpl

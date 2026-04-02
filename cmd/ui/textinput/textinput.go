@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/Tomlord1122/go-symphony/cmd/program"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/program"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"

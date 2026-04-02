@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Tomlord1122/go-symphony/cmd/flags"
-	"github.com/Tomlord1122/go-symphony/cmd/utils"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/flags"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/utils"
 )
 
 type OutputFormat string

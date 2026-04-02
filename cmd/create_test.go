@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Tomlord1122/go-symphony/cmd/flags"
-	"github.com/Tomlord1122/go-symphony/cmd/program"
-	"github.com/Tomlord1122/go-symphony/internal/scaffold"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/flags"
+	"github.com/Tomlord1122/go-symphony/v2/cmd/program"
+	"github.com/Tomlord1122/go-symphony/v2/internal/scaffold"
 	"github.com/spf13/cobra"
 )
 
