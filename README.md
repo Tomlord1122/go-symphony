@@ -183,6 +183,10 @@ go-symphony create \
   --skip-install
 ```
 
+There is also a reusable `go-symphony` skill definition available in the `tomtom-skill` repository:
+
+- `../tomtom-skill/skills/go-symphony/SKILL.md`
+
 ## ⚙️ Main Options
 
 ### Database Drivers
