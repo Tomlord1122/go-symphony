@@ -260,8 +260,8 @@ func (p *Project) CreateMainFile() error {
 		}
 	}
 
-	// Create correct docker compose for the selected driver
-	if p.DBDriver != "none" && p.DBDriver != "supabase" {
+	// Create docker compose only when docker advanced feature is enabled.
+	if p.AdvancedOptions[string(flags.Docker)] && p.DBDriver != "none" && p.DBDriver != "supabase" {
 		if p.DBDriver != "sqlite" {
 			p.createDockerMap()
 			p.Docker = p.DBDriver

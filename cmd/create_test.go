@@ -106,6 +106,24 @@ func TestNextStepLinesForSupabaseAndFrontend(t *testing.T) {
 	}
 }
 
+func TestNextStepLinesOnlyShowsDockerRunWhenDockerFeatureEnabled(t *testing.T) {
+	project := &program.Project{
+		ProjectName:     "example/app",
+		DBDriver:        flags.Postgres,
+		AdvancedOptions: map[string]bool{},
+	}
+	withoutDocker := strings.Join(nextStepLines(project, flags.NoneFrontend, ""), "\n")
+	if strings.Contains(withoutDocker, "make docker-run") {
+		t.Fatal("did not expect docker-run without docker feature")
+	}
+
+	project.AdvancedOptions[string(flags.Docker)] = true
+	withDocker := strings.Join(nextStepLines(project, flags.NoneFrontend, ""), "\n")
+	if !strings.Contains(withDocker, "make docker-run") {
+		t.Fatal("expected docker-run with docker feature")
+	}
+}
+
 func TestBuildPlanSpecFromCommand(t *testing.T) {
 	cmd := &cobra.Command{Use: "plan"}
 	cmd.Flags().String("name", "", "")

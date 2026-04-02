@@ -65,3 +65,25 @@ func TestBuildPlanIncludesBootstrapRequirements(t *testing.T) {
 		t.Fatal("expected frontend bootstrap requirements step")
 	}
 }
+
+func TestBuildPlanOnlyAddsDockerComposeWhenDockerFeatureEnabled(t *testing.T) {
+	withoutDocker := BuildSpec("example/app", flags.Postgres, nil, flags.Skip, "", flags.NoneFrontend, "", "", "", ExecutionOptions{NoInteractive: true})
+	withoutDockerPlan := BuildPlan(withoutDocker, "/tmp")
+	for _, step := range withoutDockerPlan.Steps {
+		if step.Name == "Write Docker Compose assets" {
+			t.Fatal("did not expect docker compose step without docker feature")
+		}
+	}
+
+	withDocker := BuildSpec("example/app", flags.Postgres, []string{flags.Docker}, flags.Skip, "", flags.NoneFrontend, "", "", "", ExecutionOptions{NoInteractive: true})
+	withDockerPlan := BuildPlan(withDocker, "/tmp")
+	sawDockerCompose := false
+	for _, step := range withDockerPlan.Steps {
+		if step.Name == "Write Docker Compose assets" {
+			sawDockerCompose = true
+		}
+	}
+	if !sawDockerCompose {
+		t.Fatal("expected docker compose step with docker feature")
+	}
+}

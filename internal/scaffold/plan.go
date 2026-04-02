@@ -50,7 +50,12 @@ func BuildPlan(spec CreateSpec, baseDir string) Plan {
 	}
 
 	if spec.HasFeature(flags.Docker) {
-		steps = append(steps, Step{Kind: StepWriteFile, Name: "Write Docker assets", Path: filepath.Join(projectPath, "Dockerfile")})
+		steps = append(steps,
+			Step{Kind: StepWriteFile, Name: "Write Docker assets", Path: filepath.Join(projectPath, "Dockerfile")},
+		)
+		if spec.DBDriver != flags.None && spec.DBDriver != flags.Supabase {
+			steps = append(steps, Step{Kind: StepWriteFile, Name: "Write Docker Compose assets", Path: filepath.Join(projectPath, "docker-compose.yml")})
+		}
 	}
 
 	if spec.HasFeature(flags.GoProjectWorkflow) {

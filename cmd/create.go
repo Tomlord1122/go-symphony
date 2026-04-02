@@ -586,7 +586,7 @@ func nextStepLines(project *program.Project, frontendFramework flags.FrontendFra
 		if project.AdvancedOptions[string(flags.Sqlc)] {
 			lines = append(lines, fmt.Sprintf("• %-25s %s", "make sqlc-generate", secondaryStyle.Render("# Generate type-safe Go code from SQL")))
 		}
-		if project.DBDriver != "none" {
+		if project.AdvancedOptions[string(flags.Docker)] && project.DBDriver != "none" {
 			lines = append(lines, fmt.Sprintf("• %-25s %s", "make docker-run", secondaryStyle.Render("# Start PostgreSQL database")))
 		}
 	}
