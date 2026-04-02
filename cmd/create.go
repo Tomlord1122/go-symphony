@@ -489,3 +489,24 @@ func handleNextJSSetup(project *program.Project, packageManager flags.SvelteKitP
 
 	return nil
 }
+
+func mapKeys(interactive map[string]bool, existing map[string]bool) []string {
+	keys := make([]string, 0, len(interactive)+len(existing))
+	seen := map[string]bool{}
+	for key, enabled := range existing {
+		if enabled && !seen[key] {
+			seen[key] = true
+			keys = append(keys, key)
+		}
+	}
+	for key, enabled := range interactive {
+		if enabled {
+			normalized := strings.ToLower(key)
+			if !seen[normalized] {
+				seen[normalized] = true
+				keys = append(keys, normalized)
+			}
+		}
+	}
+	return keys
+}
