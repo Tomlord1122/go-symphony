@@ -412,24 +412,7 @@ var createCmd = &cobra.Command{
 
 		// Handle Frontend framework creation if selected
 		frontendFramework := flags.FrontendFramework(cmd.Flag("frontend").Value.String())
-		switch frontendFramework {
-		case flags.SvelteKitFrontend:
-			err = handleSvelteKitSetup(project, flagSvelteKitTemplate, flagSvelteKitTypes, flagSvelteKitPackageManager)
-			if err != nil {
-				fmt.Println(warningStyle.Render("\n⚠️ SvelteKit setup was skipped or failed:"))
-				fmt.Println(secondaryStyle.Render(fmt.Sprintf("   %v", err)))
-				fmt.Println(tipMsgStyle.Render("💡 You can create the frontend manually later with:"))
-				fmt.Println(secondaryStyle.Render(fmt.Sprintf("   npx sv create %s-frontend", project.ProjectName)))
-			}
-		case flags.NextJSFrontend:
-			err = handleNextJSSetup(project, flagSvelteKitPackageManager) // Reuse package manager flag for now
-			if err != nil {
-				fmt.Println(warningStyle.Render("\n⚠️ Next.js setup was skipped or failed:"))
-				fmt.Println(secondaryStyle.Render(fmt.Sprintf("   %v", err)))
-				fmt.Println(tipMsgStyle.Render("💡 You can create the frontend manually later with:"))
-				fmt.Println(secondaryStyle.Render(fmt.Sprintf("   npx create-next-app@latest %s-frontend", project.ProjectName)))
-			}
-		}
+		runOptionalBootstrap(project, frontendFramework, flagSvelteKitTemplate, flagSvelteKitTypes, flagSvelteKitPackageManager)
 
 		fmt.Println(headerStyle.Render("\n🎉 Project created successfully!\n"))
 		fmt.Println(successStyle.Render("Next steps:"))
@@ -582,6 +565,29 @@ func handleNextJSSetup(project *program.Project, packageManager flags.SvelteKitP
 	fmt.Println(successStyle.Render("✅ Next.js frontend setup completed successfully!"))
 
 	return nil
+}
+
+func runOptionalBootstrap(project *program.Project, frontendFramework flags.FrontendFramework, template flags.SvelteKitTemplate, types flags.SvelteKitTypes, packageManager flags.SvelteKitPackageManager) {
+	var err error
+
+	switch frontendFramework {
+	case flags.SvelteKitFrontend:
+		err = handleSvelteKitSetup(project, template, types, packageManager)
+		if err != nil {
+			fmt.Println(warningStyle.Render("\n⚠️ SvelteKit setup was skipped or failed:"))
+			fmt.Println(secondaryStyle.Render(fmt.Sprintf("   %v", err)))
+			fmt.Println(tipMsgStyle.Render("💡 You can create the frontend manually later with:"))
+			fmt.Println(secondaryStyle.Render(fmt.Sprintf("   npx sv create %s-frontend", project.ProjectName)))
+		}
+	case flags.NextJSFrontend:
+		err = handleNextJSSetup(project, packageManager)
+		if err != nil {
+			fmt.Println(warningStyle.Render("\n⚠️ Next.js setup was skipped or failed:"))
+			fmt.Println(secondaryStyle.Render(fmt.Sprintf("   %v", err)))
+			fmt.Println(tipMsgStyle.Render("💡 You can create the frontend manually later with:"))
+			fmt.Println(secondaryStyle.Render(fmt.Sprintf("   npx create-next-app@latest %s-frontend", project.ProjectName)))
+		}
+	}
 }
 
 func buildScaffoldSpec(

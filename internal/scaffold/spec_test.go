@@ -42,3 +42,26 @@ func TestBuildPlanIncludesInstallStepsUnlessSkipped(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildPlanIncludesBootstrapRequirements(t *testing.T) {
+	spec := BuildSpec("example/app", flags.Supabase, nil, flags.Skip, flags.InitOnly, flags.SvelteKitFrontend, flags.Minimal, flags.TypeScript, flags.PNPM, ExecutionOptions{NoInteractive: true})
+	plan := BuildPlan(spec, "/tmp")
+
+	var sawSupabaseInfo bool
+	var sawFrontendInfo bool
+	for _, step := range plan.Steps {
+		if step.Name == "Supabase bootstrap requirements" && len(step.RequiresTools) > 0 {
+			sawSupabaseInfo = true
+		}
+		if step.Name == "SvelteKit bootstrap requirements" && len(step.RequiresTools) > 0 {
+			sawFrontendInfo = true
+		}
+	}
+
+	if !sawSupabaseInfo {
+		t.Fatal("expected supabase bootstrap requirements step")
+	}
+	if !sawFrontendInfo {
+		t.Fatal("expected frontend bootstrap requirements step")
+	}
+}

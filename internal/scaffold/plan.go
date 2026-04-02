@@ -16,12 +16,14 @@ const (
 )
 
 type Step struct {
-	Kind        StepKind `json:"kind"`
-	Name        string   `json:"name"`
-	Path        string   `json:"path,omitempty"`
-	Command     []string `json:"command,omitempty"`
-	Optional    bool     `json:"optional,omitempty"`
-	Description string   `json:"description,omitempty"`
+	Kind          StepKind `json:"kind"`
+	Name          string   `json:"name"`
+	Path          string   `json:"path,omitempty"`
+	Command       []string `json:"command,omitempty"`
+	Optional      bool     `json:"optional,omitempty"`
+	Description   string   `json:"description,omitempty"`
+	RequiresTools []string `json:"requires_tools,omitempty"`
+	SkippedReason string   `json:"skipped_reason,omitempty"`
 }
 
 type Plan struct {
@@ -39,7 +41,7 @@ func BuildPlan(spec CreateSpec, baseDir string) Plan {
 
 	if spec.DBDriver != "" && spec.DBDriver != flags.None {
 		steps = append(steps,
-			Step{Kind: StepRunCommand, Name: "Install database dependencies", Path: projectPath, Command: []string{"go", "get", "database dependencies"}, Optional: true},
+			Step{Kind: StepRunCommand, Name: "Install database dependencies", Path: projectPath, Command: []string{"go", "get", "database dependencies"}, Optional: true, RequiresTools: []string{"go"}},
 		)
 	}
 
@@ -56,26 +58,39 @@ func BuildPlan(spec CreateSpec, baseDir string) Plan {
 	}
 
 	if spec.Frontend.Framework == flags.SvelteKitFrontend {
-		steps = append(steps, Step{Kind: StepRunCommand, Name: "Bootstrap SvelteKit frontend", Path: baseDir, Command: []string{"npx", "sv", "create", spec.RootDir() + "-frontend"}, Optional: true})
+		steps = append(steps,
+			Step{Kind: StepInfo, Name: "SvelteKit bootstrap requirements", Description: "Frontend bootstrap uses external Node.js tooling", Optional: true, RequiresTools: []string{"node", "npx"}},
+			Step{Kind: StepRunCommand, Name: "Bootstrap SvelteKit frontend", Path: baseDir, Command: []string{"npx", "sv", "create", spec.RootDir() + "-frontend"}, Optional: true, RequiresTools: []string{"node", "npx"}},
+		)
 	}
 
 	if spec.Frontend.Framework == flags.NextJSFrontend {
-		steps = append(steps, Step{Kind: StepRunCommand, Name: "Bootstrap Next.js frontend", Path: baseDir, Command: []string{"npx", "create-next-app@latest", spec.RootDir() + "-frontend"}, Optional: true})
+		steps = append(steps,
+			Step{Kind: StepInfo, Name: "Next.js bootstrap requirements", Description: "Frontend bootstrap uses external Node.js tooling", Optional: true, RequiresTools: []string{"node", "npx"}},
+			Step{Kind: StepRunCommand, Name: "Bootstrap Next.js frontend", Path: baseDir, Command: []string{"npx", "create-next-app@latest", spec.RootDir() + "-frontend"}, Optional: true, RequiresTools: []string{"node", "npx"}},
+		)
 	}
 
 	if spec.DBDriver == flags.Supabase {
-		steps = append(steps, Step{Kind: StepRunCommand, Name: "Initialize Supabase", Path: projectPath, Command: []string{"supabase", "init"}, Optional: true})
+		steps = append(steps,
+			Step{Kind: StepInfo, Name: "Supabase bootstrap requirements", Description: "Supabase setup depends on the Supabase CLI", Optional: true, RequiresTools: []string{"supabase"}},
+			Step{Kind: StepRunCommand, Name: "Initialize Supabase", Path: projectPath, Command: []string{"supabase", "init"}, Optional: true, RequiresTools: []string{"supabase"}},
+		)
 	}
 
 	if !spec.Execution.SkipInstall {
 		steps = append(steps,
-			Step{Kind: StepRunCommand, Name: "Run go mod tidy", Path: projectPath, Command: []string{"go", "mod", "tidy"}, Optional: true},
-			Step{Kind: StepRunCommand, Name: "Run gofmt", Path: projectPath, Command: []string{"gofmt", "-s", "-w", "."}, Optional: true},
+			Step{Kind: StepRunCommand, Name: "Run go mod tidy", Path: projectPath, Command: []string{"go", "mod", "tidy"}, Optional: true, RequiresTools: []string{"go"}},
+			Step{Kind: StepRunCommand, Name: "Run gofmt", Path: projectPath, Command: []string{"gofmt", "-s", "-w", "."}, Optional: true, RequiresTools: []string{"gofmt"}},
+		)
+	} else {
+		steps = append(steps,
+			Step{Kind: StepInfo, Name: "Skip install commands", Optional: true, SkippedReason: "skip-install enabled", Description: "Dependency installation and formatting commands will not run"},
 		)
 	}
 
 	if spec.GitMode != "" && spec.GitMode != flags.Skip {
-		steps = append(steps, Step{Kind: StepRunCommand, Name: "Initialize git repository", Path: projectPath, Command: []string{"git", "init"}, Optional: true})
+		steps = append(steps, Step{Kind: StepRunCommand, Name: "Initialize git repository", Path: projectPath, Command: []string{"git", "init"}, Optional: true, RequiresTools: []string{"git"}})
 	}
 
 	return Plan{Spec: spec, Steps: steps}
