@@ -105,3 +105,38 @@ func TestNextStepLinesForSupabaseAndFrontend(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildPlanSpecFromCommand(t *testing.T) {
+	cmd := &cobra.Command{Use: "plan"}
+	cmd.Flags().String("name", "", "")
+	cmd.Flags().String("driver", "", "")
+	cmd.Flags().String("git", "", "")
+	cmd.Flags().String("feature", "", "")
+	cmd.Flags().String("supabase-mode", "", "")
+	cmd.Flags().String("frontend", "", "")
+	cmd.Flags().String("sveltekit-template", "", "")
+	cmd.Flags().String("sveltekit-types", "", "")
+	cmd.Flags().String("sveltekit-package-manager", "", "")
+	cmd.Flags().Bool("skip-install", false, "")
+	cmd.Flags().String("output", "json", "")
+
+	_ = cmd.Flags().Set("name", "example/app")
+	_ = cmd.Flags().Set("driver", "postgres")
+	_ = cmd.Flags().Set("git", "skip")
+	_ = cmd.Flags().Set("feature", "sqlc,docker")
+	_ = cmd.Flags().Set("frontend", "none")
+
+	spec, err := buildPlanSpecFromCommand(cmd)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if spec.ProjectName != "example/app" {
+		t.Fatalf("expected project name to round-trip, got %s", spec.ProjectName)
+	}
+	if !spec.HasFeature(flags.Sqlc) || !spec.HasFeature(flags.Docker) {
+		t.Fatal("expected features to be included in plan spec")
+	}
+	if spec.Execution.Output != scaffold.OutputFormat("json") {
+		t.Fatalf("expected json output, got %s", spec.Execution.Output)
+	}
+}
