@@ -337,16 +337,10 @@ var createCmd = &cobra.Command{
 			cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
 		}
 		project.AbsolutePath = currentWorkingDir
-		spec = scaffold.BuildSpec(
-			project.ProjectName,
-			project.DBDriver,
-			mapKeys(options.Advanced.Choices, project.AdvancedOptions),
-			project.GitOptions,
-			flagSupabaseMode,
-			flags.FrontendFramework(cmd.Flag("frontend").Value.String()),
-			flagSvelteKitTemplate,
-			flagSvelteKitTypes,
-			flagSvelteKitPackageManager,
+		spec = buildScaffoldSpec(
+			cmd,
+			project,
+			options.Advanced.Choices,
 			scaffold.ExecutionOptions{
 				DryRun:        flagDryRun,
 				NoInteractive: flagNoInteractive,
@@ -359,11 +353,10 @@ var createCmd = &cobra.Command{
 			cobra.CheckErr(textinput.CreateErrorInputModel(err).Err())
 		}
 
+		if err := maybeHandleDryRun(spec, currentWorkingDir); err != nil {
+			cobra.CheckErr(err)
+		}
 		if spec.Execution.DryRun {
-			plan := scaffold.BuildPlan(spec, currentWorkingDir)
-			if err := scaffold.WritePlan(os.Stdout, plan, spec.Execution.Output); err != nil {
-				cobra.CheckErr(err)
-			}
 			return
 		}
 
@@ -589,6 +582,34 @@ func handleNextJSSetup(project *program.Project, packageManager flags.SvelteKitP
 	fmt.Println(successStyle.Render("✅ Next.js frontend setup completed successfully!"))
 
 	return nil
+}
+
+func buildScaffoldSpec(
+	cmd *cobra.Command,
+	project *program.Project,
+	advancedChoices map[string]bool,
+	exec scaffold.ExecutionOptions,
+) scaffold.CreateSpec {
+	return scaffold.BuildSpec(
+		project.ProjectName,
+		project.DBDriver,
+		mapKeys(advancedChoices, project.AdvancedOptions),
+		project.GitOptions,
+		flags.SupabaseMode(cmd.Flag("supabase-mode").Value.String()),
+		flags.FrontendFramework(cmd.Flag("frontend").Value.String()),
+		flags.SvelteKitTemplate(cmd.Flag("sveltekit-template").Value.String()),
+		flags.SvelteKitTypes(cmd.Flag("sveltekit-types").Value.String()),
+		flags.SvelteKitPackageManager(cmd.Flag("sveltekit-package-manager").Value.String()),
+		exec,
+	)
+}
+
+func maybeHandleDryRun(spec scaffold.CreateSpec, baseDir string) error {
+	if !spec.Execution.DryRun {
+		return nil
+	}
+	plan := scaffold.BuildPlan(spec, baseDir)
+	return scaffold.WritePlan(os.Stdout, plan, spec.Execution.Output)
 }
 
 func mapKeys(interactive map[string]bool, existing map[string]bool) []string {

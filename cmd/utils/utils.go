@@ -42,7 +42,7 @@ func NonInteractiveCommand(use string, flagSet *pflag.FlagSet) string {
 				flagValue := flag.Value.String()
 				// Only include flags with non-empty values or flags that were explicitly changed from default
 				if flagValue != "" && flag.Changed {
-					// Skip SvelteKit flags if SvelteKit feature is not enabled
+					// Skip SvelteKit flags if SvelteKit frontend is not enabled
 					if isSvelteKitFlag(flag.Name) && !isSvelteKitEnabled(flagSet) {
 						return
 					}
